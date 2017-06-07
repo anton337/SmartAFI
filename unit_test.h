@@ -340,7 +340,7 @@ void run_some_tests	( DisplayUpdate * d_global_update
 		//n3 = 681 (number of traces in crossline direction)
 
 		std::size_t mpad = 32;
-		std::size_t scale = 4;
+		std::size_t scale = 1;
 
 		std::size_t tile_size_x = scale * 128 - 2 * mpad;
 		std::size_t tile_size_y = scale * 128 - 2 * mpad;
@@ -437,10 +437,8 @@ void run_some_tests	( DisplayUpdate * d_global_update
 		std::cout << "update input" << std::endl;
 		d_global_update->update("original input:", padded_size_x, padded_size_y, padded_size_z, orig_input);
 
-		AFIfunctor * functor = new AFIfunctor(d_global_update,d_local_update);
-
 		std::cout << "process" << std::endl;
-		process(padded_size_x, padded_size_y, padded_size_z, tile_size_x, tile_size_y, tile_size_z, mpad, orig_input, output, functor);
+		process<AFIfunctor>(padded_size_x, padded_size_y, padded_size_z, tile_size_x, tile_size_y, tile_size_z, mpad, orig_input, output, d_global_update, d_local_update);
 
 		std::cout << "update output" << std::endl;
 		d_global_update->update1("output:", padded_size_x, padded_size_y, padded_size_z, output);

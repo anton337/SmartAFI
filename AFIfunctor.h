@@ -13,27 +13,7 @@
 
 #include "array_verify.h"
 
-void zsmooth(
-	float scalar
-	, std::size_t num_z
-	, std::size_t num_y
-	, std::size_t num_x
-	, float * input
-	)
-{
-	
-	float * prev_arr = &input[0];
-	float * curr_arr = &input[num_y*num_x];
-	for (int k = 0, size = (num_z - 1)*num_y*num_x; k < size; k++)
-	{
-		curr_arr[k] += scalar*prev_arr[k];
-	}
-	for (int k = 0, ind = num_x*num_y*(num_z-1)-1, size = (num_z - 1)*num_y*num_x; k < size; k++, ind--)
-	{
-		prev_arr[ind] += scalar*curr_arr[ind];
-	}
-	
-}
+#include "compute_device.h"
 
 class AFIfunctor
 {
@@ -41,170 +21,138 @@ class AFIfunctor
 	DisplayUpdate *   tile_display_update;
 public:
 	AFIfunctor	( DisplayUpdate * _global_display_update
-				, DisplayUpdate *   _tile_display_update
-				)
+				      , DisplayUpdate *   _tile_display_update
+				      )
 	{
 		global_display_update = _global_display_update;
 		  tile_display_update =   _tile_display_update;
 	}
+  
 	void operator()(
-		std::size_t num_x
-		, std::size_t num_y
-		, std::size_t num_z
+		std::size_t nx
+		, std::size_t ny
+		, std::size_t nz
 		, std::size_t pad
-		, float * input // {X,Y,Z}
+		, float * in // {X,Y,Z}
+    , ComputeDevice * d
 		)
 	{
-		// input = {X,Y,Z}
-		tile_display_update->update("input",num_x, num_y, num_z, input);
-		// transpose: {X,Y,Z} -> {Z,Y,X}
-		float * data_zyx = new float[num_x*num_y*num_z]; // {Z,Y,X}
-		transpose_constY(num_x, num_y, num_z, input, data_zyx);
-		tile_display_update->update1("zyx", num_z, num_y, num_x, data_zyx);
-		// semblance on: {Z,Y,X}
-		float * num = new float[num_x*num_y*num_z]; // {Z,Y,X}
-		float * den = new float[num_x*num_y*num_z]; // {Z,Y,X}
-		int win = 1;
-		semblance_structure_oriented(win, num_z, num_y, num_x, data_zyx, num, den);
-		if (tile_display_update->comprehensive)tile_display_update->update("numerator", num_z, num_y, num_x, num);
-		if (tile_display_update->comprehensive)tile_display_update->update("denominator", num_z, num_y, num_x, den);
-		
-		std::size_t num_sheared_y = num_y + 2*64;
-		std::size_t num_sheared_x = num_x + 2*64;
 
-		float * rotation_kernel = new float[num_x*num_y*num_z]; // {Z,Y,X}
-		float * rotation_kernel_display = new float[num_x*num_y*num_z]; // {Z,Y,X}
-		float * num_rotation = new float[num_x*num_y*num_z]; // {Z,Y,X}
-		float * den_rotation = new float[num_x*num_y*num_z]; // {Z,Y,X}
-		float * num_shear = new float[num_sheared_x * num_sheared_y * num_z]; // {Z,Y_sheared,X_sheared}
-		float * den_shear = new float[num_sheared_x * num_sheared_y * num_z]; // {Z,Y_sheared,X_sheared}
-		float * shear_semblance = new float[num_sheared_x * num_sheared_y * num_z]; // {Z,Y_sheared,X_sheared}
-		float * semblance = new float[num_x * num_y * num_z]; // {Z,Y,X}
-		float * semblance_optimum = new float[num_x * num_y * num_z]; // {Z,Y,X}
-		float * fault_likelihood_optimum = new float[num_x * num_y * num_z]; // {Z,Y,X}
+	  std::string input_name = "input";            // note to self: could potentially delete this after getting transpose, if memory is an issue
+	  std::string transpose_name = "transpose";    // can also get rid of this guy, once the semblance volumes have been calculated
+	  std::string numerator_name = "numerator";
+	  std::string denominator_name = "denominator";
+	  std::string numerator_name_freq = "numerator_freq";
+	  std::string denominator_name_freq = "denominator_freq";
+	  std::string rotation_kernel_name = "rotation_kernel";
+	  std::string rotated_numerator_name = "rotated_numerator";
+	  std::string rotated_denominator_name = "rotated_denominator";
+	  std::string rotated_numerator_name_freq = "rotated_numerator_freq";
+	  std::string rotated_denominator_name_freq = "rotated_denominator_freq";
+	  std::string rotated_numerator_name_time = "rotated_numerator_time";
+	  std::string rotated_denominator_name_time = "rotated_denominator_time";
+	  std::string sheared_numerator_name_freq = "sheared_numerator_freq";
+	  std::string sheared_denominator_name_freq = "sheared_denominator_freq"; // this also serves as the semblance output, but it is repopulated with fresh data with each shear iteration, so it's ok
+	  std::string sheared_numerator_name_time = "sheared_numerator_time";
+	  std::string sheared_denominator_name_time = "sheared_denominator_time";
+	  std::string fault_likelihood_name = "fault_likelihood";
+	  std::string optimal_fault_likelihood_name = "optimal_fault_likelihood";
+	  std::string output_fault_likelihood_name = "output_fault_likelihood";
 
-		for (int k = 0, size = num_x*num_y*num_z; k < size; k++)
-		{
-			semblance_optimum[k] = 1.0f;
-			fault_likelihood_optimum[k] = 0.0f;
-		}
+    {
+      std::cout << "p1" << std::endl;
+	  	d->create(input_name, nx, ny, nz, in, false, true); // allocate input array (time domain) {X,Y,Z}
+      std::cout << "p2" << std::endl;
 
-		float s = 2.0;
-		for (float theta = -M_PI; theta <= 0; theta += M_PI / 32)
-		{
-			memset(rotation_kernel, 0, num_x*num_y);
-			memset(rotation_kernel_display, 0, num_x*num_y);
-			{
-				float sigma_x_2 = 0.005f/(s*s);
-				float sigma_y_2 = 0.000002f*10.0f;
-				float a, b, c;
-				float cos_theta = cos(theta);
-				float cos_theta_2 = cos_theta*cos_theta;
-				float sin_theta = sin(theta);
-				float sin_theta_2 = sin_theta*sin_theta;
-				float sin_2_theta = sin(2 * theta);
-				float Z;
-				float dx, dy;
-				for (int y = 0, k = 0; y < num_y; y++)
-				{
-					for (int x = 0; x < num_x; x++, k++)
-					{
-						dx = (float)(x - (int)num_x / 2) / (float)num_x;
-						dy = (float)(y - (int)num_y / 2) / (float)num_y;
-						a = cos_theta_2 / (2 * sigma_x_2) + sin_theta_2 / (2 * sigma_y_2);
-						b = -sin_2_theta / (4 * sigma_x_2) + sin_2_theta / (4 * sigma_y_2);
-						c = sin_theta_2 / (2 * sigma_x_2) + cos_theta_2 / (2 * sigma_y_2);
-						Z = exp(-(a*dx*dx - 2 * b*dx*dy + c*dy*dy));
-						rotation_kernel[(((y + 2 * num_y - (int)num_y / 2) % num_y))*num_x + ((x + 2 * num_x - (int)num_x / 2) % num_x)] = Z;
-						rotation_kernel_display[k] = Z;
-					}
-				}
-			}
-			tile_display_update->update2("rotation kernel", 1, num_y, num_x, rotation_kernel_display);
-			// convolve: rotation_kernel * num
-			
-			compute_convolution_2d_slices_fast_b_c2c(num_z, num_y, num_x, num, rotation_kernel, num_rotation);
-			if (tile_display_update->comprehensive)tile_display_update->update("numerator rotated", num_z, num_y, num_x, num_rotation);
+	  	d->create(transpose_name, nz, ny, nx); // create transpose array (time domain) {Z,Y,X}
+	  	d->compute_transpose(nx, ny, nz, input_name, transpose_name);
+      std::cout << "p3" << std::endl;
 
-			// convolve: rotation_kernel * den
-			
-			compute_convolution_2d_slices_fast_b_c2c(num_z, num_y, num_x, den, rotation_kernel, den_rotation);
-			if (tile_display_update->comprehensive)tile_display_update->update("denominator rotated", num_z, num_y, num_x, den_rotation);
+	  	d->init_fft(nz, ny, nx);
+      std::cout << "p4" << std::endl;
 
-			float shear_extend = 0.1f;
-			//for (float shear = -shear_extend; shear <= shear_extend; shear += shear_extend/4.0f)
-			float shear = 0.0f;
-			{
-				std::cout << "theta:" << theta << "   shear:" << shear << std::endl;
+	  	d->initialize_semblance(nz,ny,nx,transpose_name,numerator_name,denominator_name,numerator_name_freq,denominator_name_freq);
+      std::cout << "p5" << std::endl;
 
-				float shear_y = shear*cos(theta);
-				float shear_z = -shear*sin(theta);
+	  	d->create(optimal_fault_likelihood_name, nz, ny, nx);
+	  	d->create(output_fault_likelihood_name, nx, ny, nz);
+      std::cout << "p6" << std::endl;
 
-				shear_2d(FORWARD, LINEAR/*FFT*/, 1, num_z, num_y, num_x, num_sheared_y, num_sheared_x, shear_y, shear_z, num_rotation, num_shear);
-				if (tile_display_update->comprehensive)tile_display_update->update("numerator sheared", num_z, num_sheared_y, num_sheared_x, num_shear);
-				shear_2d(FORWARD, LINEAR/*FFT*/, 1, num_z, num_y, num_x, num_sheared_y, num_sheared_x, shear_y, shear_z, den_rotation, den_shear);
-				if (tile_display_update->comprehensive)tile_display_update->update("denominator sheared", num_z, num_sheared_y, num_sheared_x, den_shear);
+	  	d->create(rotated_numerator_name_freq, nz, ny, nx, NULL, true);
+	  	d->create(rotated_denominator_name_freq, nz, ny, nx, NULL, true);
+      std::cout << "p7" << std::endl;
 
-				float scalar = 0.9f;
-				zsmooth(scalar, num_z, num_sheared_y, num_sheared_x, num_shear);
-				if (tile_display_update->comprehensive)tile_display_update->update("numerator zsmooth", num_z, num_sheared_y, num_sheared_x, num_shear);
-				zsmooth(scalar, num_z, num_sheared_y, num_sheared_x, den_shear);
-				if (tile_display_update->comprehensive)tile_display_update->update("denomiantor zsmooth", num_z, num_sheared_y, num_sheared_x, num_shear);
+	  	d->create(rotated_numerator_name_time, nz, ny, nx, NULL, true);
+	  	d->create(rotated_denominator_name_time, nz, ny, nx, NULL, true);
+      std::cout << "p8" << std::endl;
 
-				semblance_div(num_z, num_sheared_y, num_sheared_x, shear_semblance, num_shear, den_shear);
-				if (tile_display_update->comprehensive)tile_display_update->update("semblance div", num_z, num_sheared_y, num_sheared_x, shear_semblance);
+	  	d->create(sheared_numerator_name_freq, nz, ny, nx, NULL, true);
+	  	d->create(sheared_denominator_name_freq, nz, ny, nx, NULL, true);
+      std::cout << "p9" << std::endl;
 
-				shear_2d(BACKWARD, LINEAR/*FFT*/, 0, num_z, num_y, num_x, num_sheared_y, num_sheared_x, shear_y, shear_z, semblance, shear_semblance);
-				if (tile_display_update->comprehensive)tile_display_update->update("semblance", num_z, num_y, num_x, semblance);
+	  	d->create(sheared_numerator_name_time, nz, ny, nx, NULL, true);
+	  	d->create(sheared_denominator_name_time, nz, ny, nx, NULL, true);
+      std::cout << "p10" << std::endl;
 
-				//for (int k = 0, size = num_x*num_y*num_z; k < size; k++)
-				//{
-				//	semblance_optimum[k] = (semblance[k] < semblance_optimum[k]) ? semblance[k] : semblance_optimum[k];
-				//}
+	  	d->init_shear(nz, ny, nx, fault_likelihood_name, sheared_numerator_name_freq, sheared_denominator_name_freq);
+      std::cout << "p11" << std::endl;
 
-				float val;
-				float fh;
-				for (int z = 0, k = 0; z < num_z; z++)
-				for (int y = 0; y < num_y; y++)
-				for (int x = 0; x < num_x; x++,k++)
-				//if (x >= pad && x + pad < num_x)
-				//if (y >= pad && y + pad < num_y)
-				//if (z >= pad && z + pad < num_z)
-				{
-					val = semblance[k];
-					val *= val;
-					val *= val;
-					val *= val;
-					fh = 1.0f - val;
-					fault_likelihood_optimum[k] = (fh>fault_likelihood_optimum[k])?fh:fault_likelihood_optimum[k];
-				}
+	  	int theta_ind = 0;
+	  	for (float theta = -M_PI; theta <= 0; theta += M_PI / 64, theta_ind++)
+	  	{
+	  		std::stringstream ss_rotation_kernel_name_freq;
+	  		ss_rotation_kernel_name_freq << rotation_kernel_name << "-" << theta_ind << "-freq";
+	  		if (d->create(ss_rotation_kernel_name_freq.str(), 1, ny, nx, NULL, true)) // create frequency domain array for kernel
+	  		{
+	  			std::stringstream ss_rotation_kernel_name_time;
+	  			ss_rotation_kernel_name_time << rotation_kernel_name << "-" << theta_ind << "-time";
+	  			d->initialize_rotation_kernel(nx, ny, theta, ss_rotation_kernel_name_time.str(), ss_rotation_kernel_name_freq.str());
+	  		}
+	  		
+	  		d->compute_convolution_rotation_kernel(nz, ny, nx, ss_rotation_kernel_name_freq.str(), numerator_name_freq, rotated_numerator_name_freq);
+	  		
+	  		d->compute_convolution_rotation_kernel(nz, ny, nx, ss_rotation_kernel_name_freq.str(), denominator_name_freq, rotated_denominator_name_freq);
 
-				tile_display_update->update("fault_likelihood_optimum", num_z, num_y, num_x, fault_likelihood_optimum);
+	  		float shear_extend = 0.1f;
+	  		for (float shear = -shear_extend; shear <= shear_extend; shear += shear_extend/32.0f)
+	  	//	float shear = 0.0f;
+	  		{
 
-			}
+	  			float shear_y = shear*cos(theta);
+	  			float shear_x = -shear*sin(theta);
 
-		}
+	  			d->compute_fault_likelihood(
+	  				nz
+	  				, ny
+	  				, nx
+	  				, shear_y
+	  				, shear_x
+	  				, rotated_numerator_name_freq
+	  				, rotated_denominator_name_freq
+	  				, sheared_numerator_name_freq
+	  				, sheared_denominator_name_freq/*this guys is recycled internally, which is fine, since it is repopulated with fresh data with each shear iteration*/
+	  				, fault_likelihood_name/*time domain {Z,Y,X}*/
+	  				, optimal_fault_likelihood_name
+	  				//, optimal_theta_name
+	  				//, optimal_phi_name
+	  				);
 
-		transpose_constY(num_z, num_y, num_x, fault_likelihood_optimum, input);
-		
-		tile_display_update->clear();
-		tile_display_update->clear1();
-		tile_display_update->clear2();
+	  		}
 
-		delete[] data_zyx;
-		delete[] semblance;
-		delete[] semblance_optimum;
-		delete[] fault_likelihood_optimum;
-		delete[] shear_semblance;
-		delete[] num_shear;
-		delete[] den_shear;
-		delete[] num_rotation;
-		delete[] den_rotation;
-		delete[] rotation_kernel;
-		delete[] rotation_kernel_display;
-		delete[] num;
-		delete[] den;
-	}
+	  	}
+
+	  	d->destroy_fft();
+      std::cout << "p100" << std::endl;
+
+	  	d->compute_transpose(nz, ny, nx, optimal_fault_likelihood_name, output_fault_likelihood_name);
+      std::cout << "p101" << std::endl;
+
+	  	d->destroy(input_name);
+
+	  }
+	
+  }
+
 };
 
 #endif

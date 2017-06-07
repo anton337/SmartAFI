@@ -1,6 +1,14 @@
 #ifndef tile_h
 #define tile_h
 
+#include "producer_consumer_queue.h"
+
+#include "compute_manager.h"
+
+#ifndef BUFFER_SIZE
+#define BUFFER_SIZE 100000
+#endif
+
 void get_tile(
 	std::size_t num_x
 	, std::size_t num_y
@@ -90,6 +98,116 @@ void put_tile(
 	}
 }
 
+struct tile_params
+{
+	std::size_t num_x;
+	std::size_t num_y;
+	std::size_t num_z;
+	std::size_t start_write_x;
+	std::size_t start_write_y;
+	std::size_t start_write_z;
+	std::size_t size_write_x;
+	std::size_t size_write_y;
+	std::size_t size_write_z;
+	std::size_t size_read_x;
+	std::size_t size_read_y;
+	std::size_t size_read_z;
+  std::size_t pad;
+  float * padded_input;
+  float * padded_output;
+  float * tile;
+  ComputeDevice * device;
+  ProducerConsumerQueue<ComputeDevice> * device_queue;
+  tile_params(
+	  std::size_t _num_x
+	  , std::size_t _num_y
+	  , std::size_t _num_z
+	  , std::size_t _start_write_x
+	  , std::size_t _start_write_y
+	  , std::size_t _start_write_z
+	  , std::size_t _size_write_x
+	  , std::size_t _size_write_y
+	  , std::size_t _size_write_z
+	  , std::size_t _size_read_x
+	  , std::size_t _size_read_y
+	  , std::size_t _size_read_z
+    , std::size_t _pad
+    , float * _padded_input
+    , float * _padded_output
+    , float * _tile
+    , ComputeDevice * _device
+    , ProducerConsumerQueue<ComputeDevice> * _device_queue
+    )
+    : num_x(_num_x)
+	  , num_y(_num_y)
+	  , num_z(_num_z)
+	  , start_write_x(_start_write_x)
+	  , start_write_y(_start_write_y)
+	  , start_write_z(_start_write_z)
+	  , size_write_x(_size_write_x)
+	  , size_write_y(_size_write_y)
+	  , size_write_z(_size_write_z)
+	  , size_read_x(_size_read_x)
+	  , size_read_y(_size_read_y)
+	  , size_read_z(_size_read_z)
+    , pad(_pad)
+    , padded_input(_padded_input)
+    , padded_output(_padded_output)
+    , tile(_tile)
+    , device(_device)
+    , device_queue(_device_queue)
+  {
+
+  }
+};
+
+template<typename Functor>
+void process_tile ( tile_params params
+	                , DisplayUpdate * d_global_update
+                  , DisplayUpdate * d_local_update
+                  )
+{
+				get_tile(
+					  params.num_x
+					, params.num_y
+					, params.num_z
+					, params.start_write_x
+					, params.start_write_y
+					, params.start_write_z
+					, params.size_write_x
+					, params.size_write_y
+					, params.size_write_z
+					, params.pad
+					, params.padded_input
+					, params.tile
+					);
+				// do some processing on the tile
+        Functor functor(d_global_update,d_local_update);
+				functor(
+					  params.size_read_x
+					, params.size_read_y
+					, params.size_read_z
+					, params.pad
+					, params.tile
+          , params.device
+					);
+				put_tile(
+					  params.num_x
+					, params.num_y
+					, params.num_z
+					, params.start_write_x
+					, params.start_write_y
+					, params.start_write_z
+					, params.size_write_x
+					, params.size_write_y
+					, params.size_write_z
+					, params.pad
+					, params.padded_output
+					, params.tile
+					);
+        params.device_queue->put(params.device);
+}
+
 template<typename Functor>
 void process(
 	std::size_t num_x
@@ -101,7 +219,8 @@ void process(
 	, std::size_t pad
 	, float * padded_input // num_x * num_y * num_z
 	, float * padded_output // num_x * num_y * num_z
-	, Functor * functor
+	, DisplayUpdate * d_global_update
+  , DisplayUpdate * d_local_update
 	)
 {
 	std::size_t tile_write_num_x = num_x - 2 * pad;
@@ -120,51 +239,53 @@ void process(
 	std::size_t size_read_z = size_write_z + 2 * pad;
 	float * tile = new float[size_read_x*size_read_y*size_read_z];
 
+	ComputeManager * c_manager = new ComputeManager();
+
+	int num_cpu_copies = 0;
+	int num_gpu_copies = 1;
+	std::vector<ComputeDevice*> device = c_manager->create_compute_devices(num_cpu_copies,num_gpu_copies);
+
+  ProducerConsumerQueue<ComputeDevice> device_queue(BUFFER_SIZE);
+
+  for(int k=0;k<device.size();k++)
+  {
+    device_queue.put(device[k]);
+  }
+
 	for (int x = 0, X=0; x < num_tiles_x; x++,X+=size_write_x)
 	{
 		for (int y = 0, Y=0; y < num_tiles_y; y++,Y += size_write_y)
 		{
 			for (int z = 0, Z=0; z < num_tiles_z; z++,Z += size_write_z)
 			{
-				get_tile(
-					num_x
-					, num_y
-					, num_z
-					, X + pad
-					, Y + pad
-					, Z + pad
-					, size_write_x
-					, size_write_y
-					, size_write_z
-					, pad
-					, padded_input
-					, tile
-					);
-				// do some processing on the tile
-				functor -> operator() (
-					size_read_x
-					, size_read_y
-					, size_read_z
-					, pad
-					, tile
-					);
-				put_tile(
-					num_x
-					, num_y
-					, num_z
-					, X + pad
-					, Y + pad
-					, Z + pad
-					, size_write_x
-					, size_write_y
-					, size_write_z
-					, pad
-					, padded_output
-					, tile
-					);
+        ComputeDevice * d = device_queue.get();
+        tile_params params
+	                  ( num_x
+	                  , num_y
+	                  , num_z
+	                  , X+pad
+	                  , Y+pad
+	                  , Z+pad
+	                  , size_write_x
+	                  , size_write_y
+	                  , size_write_z
+	                  , size_read_x
+	                  , size_read_y
+	                  , size_read_z
+                    , pad
+                    , padded_input
+                    , padded_output
+                    , tile
+                    , d
+                    , &device_queue
+                    );
+        boost::thread t(process_tile<Functor>,params,d_global_update,d_local_update);
 			}
 		}
 	}
+
+	c_manager->destroy();
+	delete c_manager;
 	delete[] tile;
 }
 
