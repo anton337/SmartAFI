@@ -297,6 +297,8 @@ public:
 			cufftErrchk(cufftExecC2C(plan1, a_fft, a_cplx_out, CUFFT_INVERSE));
 		else
 			cufftErrchk(cufftExecC2C(plan, a_fft, a_cplx_out, CUFFT_INVERSE));
+    //verifyGPU("inv fft before:",nx,ny,nz,a_fft);
+    //verifyGPU("inv fft after:",nx,ny,nz,a_cplx_out);
 
 		float * a_out = (float*)get(sheared_time);
 		int NX = nx;
@@ -314,7 +316,7 @@ public:
 			0,
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
-
+    //verifyGPU("inv fft:",nx,ny,nz,a_out);
 		
 	}
 
@@ -327,7 +329,7 @@ public:
 	{
 		set_context();
 		float * a_data = (float*)get(data);
-		float alpha = 0.8;
+		float alpha = 0.90;
 		int NX = nx;
 		int NY = ny;
 		int NZ = nz;
@@ -336,6 +338,7 @@ public:
 		int block_z = 1;
 		dim3 block = dim3(block_x, block_y, block_z);
 		dim3 grid = dim3((nx + block_x - 1) / block_x, (ny + block_y - 1) / block_y, 1);
+    //verifyGPU("pre zsmooth",nx,ny,nz,a_data);
 		void *args[5] = { &NZ, &NY, &NX, &alpha, &a_data };
 		_checkCudaErrors(cuLaunchKernel(zsmooth,
 			grid.x, grid.y, grid.z,
@@ -343,6 +346,7 @@ public:
 			0,
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
+    //verifyGPU("post zsmooth",nx,ny,nz,a_data);
 	}
 
 	void compute_fault_likelihood(
@@ -373,6 +377,9 @@ public:
 			0,
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
+    //verifyGPU("numerator",nx,ny,nz,a_num);
+    //verifyGPU("denominator",nx,ny,nz,a_den);
+    //verifyGPU("semblance",nx,ny,nz,a_data);
 	}
 
 	void update_maximum(
@@ -403,6 +410,8 @@ public:
 			0,
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
+    //verifyGPU("data",nx,ny,nz,a_data);
+    //verifyGPU("optimum",nx,ny,nz,a_optimum);
 	}
 	void compute_semblance(int win, int nz, int ny, int nx, std::string transpose, std::string numerator, std::string denominator)
 	{
@@ -426,6 +435,9 @@ public:
 			0,
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
+    //verifyGPU("semb data:",nx,ny,nz,a_data);
+    //verifyGPU("semb num:",nx,ny,nz,a_num);
+    //verifyGPU("semb den:",nx,ny,nz,a_den);
 		remove(transpose);
 	}
 	void compute_transpose(int nx,int ny,int nz,std::string input,std::string transpose)

@@ -21,6 +21,12 @@ public:
 	{
 		return (void*)data;
 	}
+  void get_output(void * ptr)
+  {
+		std::cout << "freq GPU get_output not implemented yet." << std::endl;
+		char ch; std::cin >> ch;
+		exit(0);
+  }
 	void allocate(float * arr = NULL, bool keep_data = false)
 	{
 		//std::cout << "cudaMalloc:" << get_name() << std::endl;

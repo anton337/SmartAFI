@@ -21,6 +21,17 @@ public:
 		}
 		return data_array[name]->get();
 	}
+	void get_output(std::string name,void* ptr)
+	{
+		if (data_array.find(name) == data_array.end())
+		{
+			std::cout << "can't find array:" << name << std::endl;
+			char ch;
+			std::cin >> ch;
+			exit(1);
+		}
+		data_array[name]->get_output(ptr);
+	}
 	virtual bool create(std::string name, int nx, int ny, int nz, float * dat = NULL, bool freq = false, bool keep_data = false) = 0;
 	bool put(std::string name, DataArray * dat)
 	{
@@ -288,7 +299,7 @@ public:
 		inv_fft(nz, ny, nx, sheared_numerator_name_freq, num_name);
 		compute_zsmooth(nz, ny, nx, num_name);
 		// shear denominator
-		compute_shear(nz, ny, nx, shear_y, shear_x, rotated_numerator_name_freq, sheared_denominator_name_freq);
+		compute_shear(nz, ny, nx, shear_y, shear_x, rotated_denominator_name_freq, sheared_denominator_name_freq);
 		std::string den_name = "tmp_denominator";
 		inv_fft(nz, ny, nx, sheared_denominator_name_freq, den_name);
 		compute_zsmooth(nz, ny, nx, den_name);

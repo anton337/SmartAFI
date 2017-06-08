@@ -15,13 +15,25 @@ struct DisplayUpdate
 	std::size_t layer_index;
 	std::size_t layers; // slowest
 	std::size_t width;
+  std::size_t wstart;
+  std::size_t wsize;
 	std::size_t height; // fastest
+  std::size_t hstart;
+  std::size_t hsize;
 	std::size_t layers1; // slowest
 	std::size_t width1;
+  std::size_t wstart1;
+  std::size_t wsize1;
 	std::size_t height1; // fastest
+  std::size_t hstart1;
+  std::size_t hsize1;
 	std::size_t layers2; // slowest
 	std::size_t width2;
+  std::size_t wstart2;
+  std::size_t wsize2;
 	std::size_t height2; // fastest
+  std::size_t hstart2;
+  std::size_t hsize2;
 	float * data;
 	float * data1;
 	float * data2;
@@ -76,14 +88,24 @@ struct DisplayUpdate
 		data2 = NULL;
 		_mutex->unlock();
 	}
-	void update(std::string _message,std::size_t _layers, std::size_t _width, std::size_t _height, float * _data)
+
+	void update ( std::string _message
+              , std::size_t _layers
+              , std::size_t _width
+              , std::size_t _height
+              , float * _data
+              )
 	{
 		_mutex->lock();
-		message = _message;
-		width = _width;
-		height = _height;
-		layers = _layers;
-		data = _data;
+		message = _message ;
+		width   = _width   ;
+    wstart  = 0        ;
+    wsize   = _width   ;
+		height  = _height  ;
+    hstart  = 0        ;
+    hsize   = _height  ;
+		layers  = _layers  ;
+		data    = _data    ;
 		_mutex->unlock();
 		verify(message, layers, width, height, data);
 		pause = true;
@@ -97,14 +119,23 @@ struct DisplayUpdate
 		}
 		std::cout << "[Continue]" << std::endl;
 	}
-	void update1(std::string _message, std::size_t _layers, std::size_t _width, std::size_t _height, float * _data)
+	void update1( std::string _message
+              , std::size_t _layers
+              , std::size_t _width
+              , std::size_t _height
+              , float * _data
+              )
 	{
 		_mutex->lock();
-		message = _message;
-		width1 = _width;
-		height1 = _height;
-		layers1 = _layers;
-		data1 = _data;
+		message = _message ;
+		width1  = _width   ;
+    wstart1 = 0        ;
+    wsize1  = _width   ;
+		height1 = _height  ;
+    hstart1 = 0        ;
+    hsize1  = _height  ;
+		layers1 = _layers  ;
+		data1   = _data    ;
 		_mutex->unlock();
 		verify(message, layers1, width1, height1, data1);
 		pause = true;
@@ -118,14 +149,131 @@ struct DisplayUpdate
 		}
 		std::cout << "[Continue]" << std::endl;
 	}
-	void update2(std::string _message, std::size_t _layers, std::size_t _width, std::size_t _height, float * _data)
+	void update2( std::string _message
+              , std::size_t _layers
+              , std::size_t _width
+              , std::size_t _height
+              , float * _data
+              )
 	{
 		_mutex->lock();
-		message = _message;
-		width2 = _width;
-		height2 = _height;
-		layers2 = _layers;
-		data2 = _data;
+		message = _message ;
+		width2  = _width   ;
+    wstart2 = 0        ;
+    wsize2  = _width   ;
+		height2 = _height  ;
+    hstart2 = 0        ;
+    hsize2  = _height  ;
+		layers2 = _layers  ;
+		data2   = _data    ;
+		_mutex->unlock();
+		verify(message, layers2, width2, height2, data2);
+		pause = true;
+		if (!continuous_processing)
+		{
+			std::cout << "[Paused]" << std::endl;
+		}
+		while (pause&&!continuous_processing)
+		{
+			boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+		}
+		std::cout << "[Continue]" << std::endl;
+	}
+	void update ( std::string _message
+              , std::size_t _layers
+              , std::size_t _lstart
+              , std::size_t _lsize
+              , std::size_t _width
+              , std::size_t _wstart
+              , std::size_t _wsize
+              , std::size_t _height
+              , std::size_t _hstart
+              , std::size_t _hsize
+              , float * _data
+              )
+	{
+		_mutex->lock();
+		message = _message ;
+		width   = _width   ;
+    wstart  = _wstart  ;
+    wsize   = _wsize   ;
+		height  = _height  ;
+    hstart  = _hstart  ;
+    hsize   = _hsize   ;
+		layers  = _layers  ;
+		data    = _data    ;
+		_mutex->unlock();
+		verify(message, layers, width, height, data);
+		pause = true;
+		if (!continuous_processing)
+		{
+			std::cout << "[Paused]" << std::endl;
+		}
+		while (pause&&!continuous_processing)
+		{
+			boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+		}
+		std::cout << "[Continue]" << std::endl;
+	}
+	void update1( std::string _message
+              , std::size_t _layers
+              , std::size_t _lstart
+              , std::size_t _lsize
+              , std::size_t _width
+              , std::size_t _wstart
+              , std::size_t _wsize
+              , std::size_t _height
+              , std::size_t _hstart
+              , std::size_t _hsize
+              , float * _data
+              )
+	{
+		_mutex->lock();
+		message = _message ;
+		width1  = _width   ;
+    wstart1 = _wstart  ;
+    wsize1  = _wsize   ;
+		height1 = _height  ;
+    hstart1 = _hstart  ;
+    hsize1  = _hsize   ;
+		layers1 = _layers  ;
+		data1   = _data    ;
+		_mutex->unlock();
+		verify(message, layers1, width1, height1, data1);
+		pause = true;
+		if (!continuous_processing)
+		{
+			std::cout << "[Paused]" << std::endl;
+		}
+		while (pause&&!continuous_processing)
+		{
+			boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+		}
+		std::cout << "[Continue]" << std::endl;
+	}
+	void update2( std::string _message
+              , std::size_t _layers
+              , std::size_t _lstart
+              , std::size_t _lsize
+              , std::size_t _width
+              , std::size_t _wstart
+              , std::size_t _wsize
+              , std::size_t _height
+              , std::size_t _hstart
+              , std::size_t _hsize
+              , float * _data
+              )
+	{
+		_mutex->lock();
+		message = _message ;
+		width2  = _width   ;
+    wstart2 = _wstart  ;
+    wsize2  = _wsize   ;
+		height2 = _height  ;
+    hstart2 = _hstart  ;
+    hsize2  = _hsize   ;
+		layers2 = _layers  ;
+		data2   = _data    ;
 		_mutex->unlock();
 		verify(message, layers2, width2, height2, data2);
 		pause = true;
@@ -178,12 +326,16 @@ struct DisplayUpdate
 				{
 					for (std::size_t h = 0; h < height; h++, k++)
 					{
-						val = (data_ptr[k] - min_val)*factor;
-						glColor3f(val, val, val);
-						glVertex3f(-1 + (w+1)*dw, -1 + (h+1)*dh, 0);
-						glVertex3f(-1 +  w   *dw, -1 + (h+1)*dh, 0);
-						glVertex3f(-1 +  w   *dw, -1 +  h   *dh, 0);
-						glVertex3f(-1 + (w+1)*dw, -1 +  h   *dh, 0);
+            if(w>=wstart&&w<wstart+wsize)
+            if(h>=hstart&&h<hstart+hsize)
+            {
+						  val = (data_ptr[k] - min_val)*factor;
+						  glColor3f(val, val, val);
+						  glVertex3f(-1 + (w+1)*dw, -1 + (h+1)*dh, 0);
+						  glVertex3f(-1 +  w   *dw, -1 + (h+1)*dh, 0);
+						  glVertex3f(-1 +  w   *dw, -1 +  h   *dh, 0);
+						  glVertex3f(-1 + (w+1)*dw, -1 +  h   *dh, 0);
+            }
 					}
 				}
 				glEnd();
@@ -225,12 +377,16 @@ struct DisplayUpdate
 				{
 					for (std::size_t h = 0; h < height1; h++, k++)
 					{
-						val = (data_ptr[k] - min_val)*factor;
-						glColor3f(val, val, val);
-						glVertex3f(-3 + (w + 1)*dw, -1 + (h + 1)*dh, 0);
-						glVertex3f(-3 + w   *dw, -1 + (h + 1)*dh, 0);
-						glVertex3f(-3 + w   *dw, -1 + h   *dh, 0);
-						glVertex3f(-3 + (w + 1)*dw, -1 + h   *dh, 0);
+            if(w>=wstart1&&w<wstart1+wsize1)
+            if(h>=hstart1&&h<hstart1+hsize1)
+            {
+						  val = (data_ptr[k] - min_val)*factor;
+						  glColor3f(val, val, val);
+						  glVertex3f(-3 + (w + 1)*dw, -1 + (h + 1)*dh, 0);
+						  glVertex3f(-3 + w   *dw, -1 + (h + 1)*dh, 0);
+						  glVertex3f(-3 + w   *dw, -1 + h   *dh, 0);
+						  glVertex3f(-3 + (w + 1)*dw, -1 + h   *dh, 0);
+            }
 					}
 				}
 				glEnd();
@@ -272,12 +428,16 @@ struct DisplayUpdate
 				{
 					for (std::size_t h = 0; h < height2; h++, k++)
 					{
-						val = (data_ptr[k] - min_val)*factor;
-						glColor3f(val, val, val);
-						glVertex3f(1 + (w + 1)*dw, -1 + (h + 1)*dh, 0);
-						glVertex3f(1 + w   *dw, -1 + (h + 1)*dh, 0);
-						glVertex3f(1 + w   *dw, -1 + h   *dh, 0);
-						glVertex3f(1 + (w + 1)*dw, -1 + h   *dh, 0);
+            if(w>=wstart2&&w<wstart2+wsize2)
+            if(h>=hstart2&&h<hstart2+hsize2)
+            {
+						  val = (data_ptr[k] - min_val)*factor;
+						  glColor3f(val, val, val);
+						  glVertex3f(1 + (w + 1)*dw, -1 + (h + 1)*dh, 0);
+						  glVertex3f(1 + w   *dw, -1 + (h + 1)*dh, 0);
+						  glVertex3f(1 + w   *dw, -1 + h   *dh, 0);
+						  glVertex3f(1 + (w + 1)*dw, -1 + h   *dh, 0);
+            }
 					}
 				}
 				glEnd();

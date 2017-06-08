@@ -33,6 +33,7 @@ public:
 	virtual void set(float *) = 0;
 	virtual void fill(float) = 0;
 	virtual void * get() = 0;
+  virtual void get_output(void *) = 0;
 	virtual void destroy() = 0;
 };
 

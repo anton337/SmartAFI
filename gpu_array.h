@@ -21,6 +21,10 @@ public:
 	{
 		return (void*)data;
 	}
+  void get_output(void * ptr)
+  {
+	  gpuErrchk(cudaMemcpy(ptr, data, sizeof(float)*get_size(), cudaMemcpyDeviceToHost));
+  }
 	void allocate(float * arr = NULL, bool keep_data = false)
 	{
 		//std::cout << "cudaMalloc:" << get_name() << std::endl;
@@ -50,8 +54,7 @@ public:
 	}
 	void fill(float arr)
 	{
-		// do nothing for now
-		// data is randomly initialized
+		//gpuErrchk(cudaMemset(data, 0, sizeof(float)*get_size()));
 	}
 	void destroy()
 	{

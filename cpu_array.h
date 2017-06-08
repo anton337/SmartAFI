@@ -19,6 +19,10 @@ public:
 	{
 		return (void*)data;
 	}
+  void get_output(void * ptr)
+  {
+    ptr = data;
+  }
 	void allocate(float * arr = NULL,bool keep_data = false)
 	{
 		if (arr)

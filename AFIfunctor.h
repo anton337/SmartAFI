@@ -38,6 +38,8 @@ public:
 		)
 	{
 
+    float scalar = 32;
+
 	  std::string input_name = "input";            // note to self: could potentially delete this after getting transpose, if memory is an issue
 	  std::string transpose_name = "transpose";    // can also get rid of this guy, once the semblance volumes have been calculated
 	  std::string numerator_name = "numerator";
@@ -60,45 +62,34 @@ public:
 	  std::string output_fault_likelihood_name = "output_fault_likelihood";
 
     {
-      std::cout << "p1" << std::endl;
 	  	d->create(input_name, nx, ny, nz, in, false, true); // allocate input array (time domain) {X,Y,Z}
-      std::cout << "p2" << std::endl;
 
 	  	d->create(transpose_name, nz, ny, nx); // create transpose array (time domain) {Z,Y,X}
 	  	d->compute_transpose(nx, ny, nz, input_name, transpose_name);
-      std::cout << "p3" << std::endl;
 
 	  	d->init_fft(nz, ny, nx);
-      std::cout << "p4" << std::endl;
 
 	  	d->initialize_semblance(nz,ny,nx,transpose_name,numerator_name,denominator_name,numerator_name_freq,denominator_name_freq);
-      std::cout << "p5" << std::endl;
 
 	  	d->create(optimal_fault_likelihood_name, nz, ny, nx);
 	  	d->create(output_fault_likelihood_name, nx, ny, nz);
-      std::cout << "p6" << std::endl;
 
 	  	d->create(rotated_numerator_name_freq, nz, ny, nx, NULL, true);
 	  	d->create(rotated_denominator_name_freq, nz, ny, nx, NULL, true);
-      std::cout << "p7" << std::endl;
 
 	  	d->create(rotated_numerator_name_time, nz, ny, nx, NULL, true);
 	  	d->create(rotated_denominator_name_time, nz, ny, nx, NULL, true);
-      std::cout << "p8" << std::endl;
 
 	  	d->create(sheared_numerator_name_freq, nz, ny, nx, NULL, true);
 	  	d->create(sheared_denominator_name_freq, nz, ny, nx, NULL, true);
-      std::cout << "p9" << std::endl;
 
 	  	d->create(sheared_numerator_name_time, nz, ny, nx, NULL, true);
 	  	d->create(sheared_denominator_name_time, nz, ny, nx, NULL, true);
-      std::cout << "p10" << std::endl;
 
 	  	d->init_shear(nz, ny, nx, fault_likelihood_name, sheared_numerator_name_freq, sheared_denominator_name_freq);
-      std::cout << "p11" << std::endl;
 
 	  	int theta_ind = 0;
-	  	for (float theta = -M_PI; theta <= 0; theta += M_PI / 64, theta_ind++)
+	  	for (float theta = -M_PI; theta <= 0; theta += M_PI / scalar, theta_ind++)
 	  	{
 	  		std::stringstream ss_rotation_kernel_name_freq;
 	  		ss_rotation_kernel_name_freq << rotation_kernel_name << "-" << theta_ind << "-freq";
@@ -114,8 +105,8 @@ public:
 	  		d->compute_convolution_rotation_kernel(nz, ny, nx, ss_rotation_kernel_name_freq.str(), denominator_name_freq, rotated_denominator_name_freq);
 
 	  		float shear_extend = 0.1f;
-	  		for (float shear = -shear_extend; shear <= shear_extend; shear += shear_extend/32.0f)
-	  	//	float shear = 0.0f;
+	  		for (float shear = -shear_extend; shear <= shear_extend; shear += shear_extend/scalar)
+	  		//float shear = 0.0f;
 	  		{
 
 	  			float shear_y = shear*cos(theta);
@@ -142,12 +133,13 @@ public:
 	  	}
 
 	  	d->destroy_fft();
-      std::cout << "p100" << std::endl;
 
 	  	d->compute_transpose(nz, ny, nx, optimal_fault_likelihood_name, output_fault_likelihood_name);
-      std::cout << "p101" << std::endl;
+
+      d->get_output(output_fault_likelihood_name, in);
 
 	  	d->destroy(input_name);
+	  	d->destroy(optimal_fault_likelihood_name);
 
 	  }
 	

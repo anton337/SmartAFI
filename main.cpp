@@ -43,9 +43,13 @@
 
 #include "random_stuff.h"
 
+#include "sep_reader.h"
+
 GLfloat xRotated, yRotated, zRotated;
 
 float Distance = 5;
+
+bool global_toggle = false;
 
 DisplayUpdate * d_global_update = new DisplayUpdate();
 DisplayUpdate * d_local_update = new DisplayUpdate();
@@ -69,26 +73,52 @@ void drawstring(float x, float y, float z, const char *str)
 
 void DrawLocal(void)
 {
-	glMatrixMode(GL_MODELVIEW);
-	// clear the drawing buffer.
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glLoadIdentity();
-	glColor3f(1, 1, 1);
-	d_local_update->_mutex->lock();
-	std::stringstream ss;
-	ss << d_local_update->message;
-	ss << ":" << d_local_update->layer_index << "/" << d_local_update->layers;
-	drawstring(3, 3, -10, ss.str().c_str());
-	d_local_update->_mutex->unlock();
-	glTranslatef(0.0, 0.0, -Distance);
-	glRotatef(xRotated, 1.0, 0.0, 0.0);
-	// rotation about Y axis
-	glRotatef(yRotated, 0.0, 1.0, 0.0);
-	// rotation about Z axis
-	glRotatef(zRotated, 0.0, 0.0, 1.0);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	d_local_update->draw();
-	glFlush();
+  if(global_toggle)
+  {
+	  glMatrixMode(GL_MODELVIEW);
+	  // clear the drawing buffer.
+	  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	  glLoadIdentity();
+	  glColor3f(1, 1, 1);
+	  d_global_update->_mutex->lock();
+	  std::stringstream ss;
+	  ss << d_global_update->message;
+	  ss << ":" << d_global_update->layer_index << "/" << d_global_update->layers;
+	  drawstring(3, 3, -10, ss.str().c_str());
+	  d_global_update->_mutex->unlock();
+	  glTranslatef(0.0, 0.0, -Distance);
+	  glRotatef(xRotated, 1.0, 0.0, 0.0);
+	  // rotation about Y axis
+	  glRotatef(yRotated, 0.0, 1.0, 0.0);
+	  // rotation about Z axis
+	  glRotatef(zRotated, 0.0, 0.0, 1.0);
+	  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	  d_global_update->draw();
+	  glFlush();
+  }
+  else
+  {
+	  glMatrixMode(GL_MODELVIEW);
+	  // clear the drawing buffer.
+	  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	  glLoadIdentity();
+	  glColor3f(1, 1, 1);
+	  d_local_update->_mutex->lock();
+	  std::stringstream ss;
+	  ss << d_local_update->message;
+	  ss << ":" << d_local_update->layer_index << "/" << d_local_update->layers;
+	  drawstring(3, 3, -10, ss.str().c_str());
+	  d_local_update->_mutex->unlock();
+	  glTranslatef(0.0, 0.0, -Distance);
+	  glRotatef(xRotated, 1.0, 0.0, 0.0);
+	  // rotation about Y axis
+	  glRotatef(yRotated, 0.0, 1.0, 0.0);
+	  // rotation about Z axis
+	  glRotatef(zRotated, 0.0, 0.0, 1.0);
+	  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	  d_local_update->draw();
+	  glFlush();
+  }
 }
 
 void animation(void)
@@ -107,11 +137,29 @@ void keyboard(unsigned char key, int x, int y)
 	switch (key)
 	{
 	case 27:exit(0);
-	case 'p':d_local_update->pause = false; break;
-	case 'c':d_local_update->continuous_processing = !d_local_update->continuous_processing; break;
-	case 'w':d_local_update->increment_layer(); break;
-	case 's':d_local_update->decrement_layer(); break;
-	case 'v':d_local_update->set_comprehensive(); break;
+  case 'g':
+          global_toggle=!global_toggle;
+          break;
+	case 'p':
+          d_global_update->pause = false; 
+          d_local_update->pause = false; 
+          break;
+	case 'c':
+          d_global_update->continuous_processing = !d_global_update->continuous_processing; 
+          d_local_update->continuous_processing = !d_local_update->continuous_processing; 
+          break;
+	case 'w':
+          d_global_update->increment_layer(); 
+          d_local_update->increment_layer(); 
+          break;
+	case 's':
+          d_global_update->decrement_layer(); 
+          d_local_update->decrement_layer(); 
+          break;
+	case 'v':
+          d_global_update->set_comprehensive(); 
+          d_local_update->set_comprehensive(); 
+          break;
 	case 'q':Distance /= 1.01f; break;
 	case 'a':Distance *= 1.01f; break;
 	}
@@ -173,8 +221,8 @@ JNIEXPORT void JNICALL Java_AFI_AFI
 	float min_val = 10000000;
 	for (std::size_t k(0); k < len; k++)
 	{
-		_arr[k] = (_arr[k]>max_val) ? _arr[k] : max_val;
-		_arr[k] = (_arr[k]<min_val) ? _arr[k] : min_val;
+		max_val = (_arr[k]>max_val) ? _arr[k] : max_val;
+		min_val = (_arr[k]<min_val) ? _arr[k] : min_val;
 	}
 	float fact = 1.0f / (max_val-min_val);
 	for (std::size_t k(0); k < len; k++)
@@ -212,26 +260,22 @@ JNIEXPORT void JNICALL Java_AFI_AFI
 int main(int argc, char** argv)
 {
 
-	//quick_zsmooth_sanity_check();
+  SEPReader reader ( "/home/antonk/OpendTectData/Data/F3_Demo_2016_training_v6/SEP/fault_cube.sep" );
 
-	//char ch;
-	//std::cin >> ch;
+  int nx = reader.n3;
+  int ny = reader.n2;
+  int nz = reader.n1;
 
-  //boost::thread * t = new boost::thread(test_gpu_afi);
-  //test_gpu_afi();
-	//test_gpu();
-	//test_shear();
-	
-  int nx = 1024;
-  int ny = 1024;
-  int nz = 1024;
   float * arr = new float[nx*ny*nz];
-  for(int x=0,k=0;x<nx;x++)
-    for(int y=0;y<ny;y++)
-      for(int z=0;z<nz;z++,k++)
-      {
-        arr[k] = 5;
-      }
+  reader . read_sepval  ( &arr[0] 
+                        , reader.o1 
+                        , reader.o2 
+                        , reader.o3 
+                        , reader.n1 
+                        , reader.n2 
+                        , reader.n3 
+                        );
+
 	UnitTest * u_test = new UnitTest();
 	u_test -> operator () (d_global_update,d_local_update,nx,ny,nz,arr);
 	

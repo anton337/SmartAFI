@@ -100,6 +100,9 @@ void put_tile(
 
 struct tile_params
 {
+  std::size_t nx;
+  std::size_t ny;
+  std::size_t nz;
 	std::size_t num_x;
 	std::size_t num_y;
 	std::size_t num_z;
@@ -119,7 +122,10 @@ struct tile_params
   ComputeDevice * device;
   ProducerConsumerQueue<ComputeDevice> * device_queue;
   tile_params(
-	  std::size_t _num_x
+    std::size_t _nx
+    , std::size_t _ny
+    , std::size_t _nz
+	  , std::size_t _num_x
 	  , std::size_t _num_y
 	  , std::size_t _num_z
 	  , std::size_t _start_write_x
@@ -138,7 +144,10 @@ struct tile_params
     , ComputeDevice * _device
     , ProducerConsumerQueue<ComputeDevice> * _device_queue
     )
-    : num_x(_num_x)
+    : nx(_nx)
+    , ny(_ny)
+    , nz(_nz)
+    , num_x(_num_x)
 	  , num_y(_num_y)
 	  , num_z(_num_z)
 	  , start_write_x(_start_write_x)
@@ -205,12 +214,22 @@ void process_tile ( tile_params params
 					, params.padded_output
 					, params.tile
 					);
+		    std::cout << "update output" << std::endl;
+		    d_global_update->update1  ( "output:"
+                                  , params.num_x , params.pad , params.nx
+                                  , params.num_y , params.pad , params.ny
+                                  , params.num_z , params.pad , params.nz
+                                  , params.padded_output
+                                  );
         params.device_queue->put(params.device);
 }
 
 template<typename Functor>
 void process(
-	std::size_t num_x
+  std::size_t nx
+  , std::size_t ny
+  , std::size_t nz
+	, std::size_t num_x
 	, std::size_t num_y
 	, std::size_t num_z
 	, std::size_t size_write_x
@@ -260,7 +279,10 @@ void process(
 			{
         ComputeDevice * d = device_queue.get();
         tile_params params
-	                  ( num_x
+                    ( nx
+                    , ny
+                    , nz
+	                  , num_x
 	                  , num_y
 	                  , num_z
 	                  , X+pad
