@@ -7,40 +7,85 @@
 
 class CPUDevice : public ComputeDevice
 {
-	void fft(int nz, int ny, int nx, std::string in_name, std::string out_name)
+public:
+	CPUDevice(std::string _token)
+		: ComputeDevice(_token)
+	{
+
+	}
+	void fft(
+		int nz
+		, int ny
+		, int nx
+		, Token in_token
+		, Token out_token
+		)
 	{
 		std::cout << "cpu fft not implemented yet" << std::endl;
 		char ch; std::cin >> ch;
 		exit(0);
 	}
 
-	bool create(std::string name, int nx, int ny, int nz, float * dat = NULL, bool freq = false, bool keep_data = false)
+	bool create(
+		Token token
+		, int nx
+		, int ny
+		, int nz
+		, float * dat = NULL
+		, bool freq = false
+		, bool keep_data = false
+		)
 	{
-		return (freq) ? createArray<freqCPUArray>(name, nx*ny*nz, dat, keep_data)
-			: createArray<CPUArray>(name, nx*ny*nz, dat, keep_data);
+		if (freq)
+		{
+			MESSAGE_ASSERT(token.type == FREQ_GPU,"create data array : type mismatch");
+			MESSAGE_ASSERT(token.nx == nx, "create data array : nx mismatch");
+			MESSAGE_ASSERT(token.ny == ny, "create data array : ny mismatch");
+			MESSAGE_ASSERT(token.nz == nz, "create data array : nz mismatch");
+			return createArray<freqCPUArray>(token, nx,ny,nz, dat, keep_data);
+		}
+		else
+		{
+			MESSAGE_ASSERT(token.type == CPU, "create data array : type mismatch");
+			MESSAGE_ASSERT(token.nx == nx, "create data array : nx mismatch");
+			MESSAGE_ASSERT(token.ny == ny, "create data array : ny mismatch");
+			MESSAGE_ASSERT(token.nz == nz, "create data array : nz mismatch");
+			return createArray<CPUArray>(token, nx,ny,nz, dat, keep_data);
+		}
 	}
 
-	void compute_semblance(int win, int nz, int ny, int nx, std::string transpose, std::string numerator, std::string denominator)
+	void compute_semblance(int win, int nz, int ny, int nx, Token transpose, Token numerator, Token denominator)
 	{
-		std::cout << "cpu compute semblance not implemented yet" << std::endl;
-		char ch; std::cin >> ch;
-		exit(0);
+		MESSAGE_ASSERT(transpose.type == CPU, "semblance : transpose : type mismatch");
+		MESSAGE_ASSERT(numerator.type == CPU, "semblance : numerator : type mismatch");
+		MESSAGE_ASSERT(denominator.type == CPU, "semblance : denominator : type mismatch");
+		float* dat_arr = (float*)get(transpose);
+		float* num_arr = (float*)get(numerator);
+		float* den_arr = (float*)get(denominator);
+		semblance(win, nx, ny, nz, dat_arr, num_arr, den_arr);
 	}
 
-	void compute_transpose(int nx, int ny, int nz, std::string input, std::string transpose)
+	void compute_transpose(int nx, int ny, int nz, Token input, Token transpose)
 	{
-		std::cout << "cpu transpose not implemented yet" << std::endl;
-		char ch; std::cin >> ch;
-		exit(0);
+		MESSAGE_ASSERT(input.type == CPU, "transpose : input : type mismatch");
+		MESSAGE_ASSERT(transpose.type == CPU, "transpose : transpose : type mismatch");
+		float* input_arr = (float*)get(input);
+		float* transpose_arr = (float*)get(transpose);
+		transpose_constY(nx
+			, ny
+			, nz
+			, input_arr
+			, transpose_arr
+			);
 	}
 
 	void compute_convolution_rotation_kernel(
 		std::size_t nz
 		, std::size_t ny
 		, std::size_t nx
-		, std::string rotation_kernel_name_freq
-		, std::string signal_name_freq
-		, std::string rotated_signal_name_freq
+		, Token rotation_kernel_token_freq
+		, Token signal_token_freq
+		, Token rotated_signal_token_freq
 		)
 	{
 		std::cout << "cpu rotation not implemented yet" << std::endl;
@@ -54,8 +99,8 @@ class CPUDevice : public ComputeDevice
 		, std::size_t nx
 		, float shear_y
 		, float shear_x
-		, std::string rotated_freq
-		, std::string sheared_freq
+		, Token rotated_freq
+		, Token sheared_freq
 		)
 	{
 		std::cout << "cpu compute shear not implemented yet" << std::endl;
@@ -69,8 +114,8 @@ class CPUDevice : public ComputeDevice
 		, std::size_t nx
 		, float shear_y
 		, float shear_x
-		, std::string rotated_time
-		, std::string sheared_time
+		, Token rotated_time
+		, Token sheared_time
 		)
 	{
 		std::cout << "cpu compute shear time not implemented yet" << std::endl;
@@ -82,8 +127,8 @@ class CPUDevice : public ComputeDevice
 		std::size_t nz
 		, std::size_t ny
 		, std::size_t nx
-		, std::string sheared_freq
-		, std::string sheared_time
+		, Token sheared_freq
+		, Token sheared_time
 		)
 	{
 		std::cout << "cpu inv fft not implemented yet" << std::endl;
@@ -113,7 +158,7 @@ class CPUDevice : public ComputeDevice
 		std::size_t nz
 		, std::size_t ny
 		, std::size_t nx
-		, std::string data
+		, Token data
 		)
 	{
 		std::cout << "cpu compute zsmooth not implemented yet" << std::endl;
@@ -125,9 +170,9 @@ class CPUDevice : public ComputeDevice
 		std::size_t nz
 		, std::size_t ny
 		, std::size_t nx
-		, std::string num
-		, std::string den
-		, std::string data
+		, Token num
+		, Token den
+		, Token data
 		)
 	{
 		std::cout << "cpu compute fault likelihood not implemented yet" << std::endl;
@@ -139,10 +184,10 @@ class CPUDevice : public ComputeDevice
 		std::size_t nz
 		, std::size_t ny
 		, std::size_t nx
-		, std::string fh
-		, std::string optimum_fh
-		//, std::string optimum_th
-		//, std::string optimum_phi
+		, Token fh
+		, Token optimum_fh
+		//, Token optimum_th
+		//, Token optimum_phi
 		)
 	{
 		std::cout << "cpu update maximum not implemented yet" << std::endl;

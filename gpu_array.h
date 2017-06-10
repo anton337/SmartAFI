@@ -5,11 +5,11 @@ class GPUArray : public DataArray
 {
 	float * data;
 public:
-	GPUArray(std::string name
-			,std::size_t size)
-		: DataArray(name, size,GPU)
+	GPUArray(Token token
+			,std::size_t nx,std::size_t ny,std::size_t nz)
+		: DataArray(token,nx,ny,nz,GPU)
 	{
-
+		MESSAGE_ASSERT(token.type==GPU,"type mismatch");
 	}
 	void put(void * _data)
 	{
@@ -46,9 +46,6 @@ public:
 	{
 		if (arr)
 		{
-      std::cout << data << std::endl;
-      std::cout << arr << std::endl;
-      std::cout << get_size() << std::endl;
 			gpuErrchk(cudaMemcpy(data, arr, sizeof(float)*get_size(), cudaMemcpyHostToDevice));
     }
 	}
@@ -59,6 +56,27 @@ public:
 	void destroy()
 	{
 		cudaFree(data);
+	}
+	std::string get_validation()
+	{
+		{
+			float min_val = 1000000;
+			float max_val = -1000000;
+			float val;
+			std::size_t size = get_size();
+			float * tmp = new float[size];
+			cudaMemcpy(tmp, data, sizeof(float)*size, cudaMemcpyDeviceToHost);
+			for (std::size_t k = 0; k < size; k++)
+			{
+				val = tmp[k];
+				max_val = (val > max_val) ? val : max_val;
+				min_val = (val < min_val) ? val : min_val;
+			}
+			delete[] tmp;
+			std::stringstream ss;
+			ss << "\t" << get_nx() << "x" << get_ny() << "x" << get_nz() << " === " << min_val << " --- " << max_val << std::endl;
+			return ss.str();
+		}
 	}
 };
 

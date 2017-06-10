@@ -259,25 +259,54 @@ JNIEXPORT void JNICALL Java_AFI_AFI
 
 int main(int argc, char** argv)
 {
+	//{
+	//	std::cout << "press key to start" << std::endl;
+	//	char ch;
+	//	std::cin >> ch;
+	//}
 
-  SEPReader reader ( "/home/antonk/OpendTectData/Data/F3_Demo_2016_training_v6/SEP/fault_cube.sep" );
+  //SEPReader reader("/home/antonk/OpendTectData/Data/F3_Demo_2016_training_v6/SEP/fault_cube.sep");
+	//SEPReader reader("C:/Users/H181523/OpendTect/oxy/oxy.hdr");
+  SEPReader reader("/home/antonk/OpendTectData/Data/oxy/oxy.hdr");
 
-  int nx = reader.n3;
-  int ny = reader.n2;
-  int nz = reader.n1;
+	int ox = reader.o3;
+	int oy = reader.o2;
+	int oz = reader.o1;
 
-  float * arr = new float[nx*ny*nz];
-  reader . read_sepval  ( &arr[0] 
-                        , reader.o1 
-                        , reader.o2 
-                        , reader.o3 
-                        , reader.n1 
-                        , reader.n2 
-                        , reader.n3 
-                        );
+	int nx = reader.n3;
+	int ny = reader.n2;
+	int nz = reader.n1;
+
+	//std::cout << "O:" << ox << " " << oy << " " << oz << std::endl;
+
+	//std::cout << "N:" << nx << " " << ny << " " << nz << std::endl;
+
+	//{
+	//  char ch;
+	//  std::cin >> ch;
+	//  std::cout << "press any key to continue..." << std::endl;
+	//}
+
+	
+	float * arr = new float[nx*ny*nz];
+	reader.read_sepval(&arr[0]
+		, reader.o1
+		, reader.o2
+		, reader.o3
+		, reader.n1
+		, reader.n2
+		, reader.n3
+		);
+		
+
+	//int nx = 256;
+	//int ny = 256;
+	//int nz = 256;
+
+	//float * arr = new float[nx*ny*nz];
 
 	UnitTest * u_test = new UnitTest();
-	u_test -> operator () (d_global_update,d_local_update,nx,ny,nz,arr);
+	u_test -> operator () (d_global_update, d_local_update, nx, ny, nz, arr);
 	
 	glutInit(&argc, argv);
 	//we initizlilze the glut. functions
@@ -292,7 +321,11 @@ int main(int argc, char** argv)
 	glutIdleFunc(animation);
 	glutKeyboardFunc(keyboard);
 	glutMainLoop();
-
+	
+	{
+		char ch;
+		std::cin >> ch;
+	}
 	return 0;
 }
 

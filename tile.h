@@ -277,31 +277,31 @@ void process(
 		{
 			for (int z = 0, Z=0; z < num_tiles_z; z++,Z += size_write_z)
 			{
-        ComputeDevice * d = device_queue.get();
-        tile_params params
-                    ( nx
-                    , ny
-                    , nz
-	                  , num_x
-	                  , num_y
-	                  , num_z
-	                  , X+pad
-	                  , Y+pad
-	                  , Z+pad
-	                  , size_write_x
-	                  , size_write_y
-	                  , size_write_z
-	                  , size_read_x
-	                  , size_read_y
-	                  , size_read_z
-                    , pad
-                    , padded_input
-                    , padded_output
-                    , tile
-                    , d
-                    , &device_queue
-                    );
-        boost::thread t(process_tile<Functor>,params,d_global_update,d_local_update);
+				ComputeDevice * d = device_queue.get();
+				tile_params params
+							( nx
+							, ny
+							, nz
+							, num_x
+							, num_y
+							, num_z
+							, X+pad
+							, Y+pad
+							, Z+pad
+							, size_write_x
+							, size_write_y
+							, size_write_z
+							, size_read_x
+							, size_read_y
+							, size_read_z
+							, pad
+							, padded_input
+							, padded_output
+							, tile
+							, d
+							, &device_queue
+							);
+				boost::thread t(process_tile<Functor>,params,d_global_update,d_local_update);
 			}
 		}
 	}

@@ -30,7 +30,7 @@ int nx
 		int k_1 = nx*ky + kx;
 		for (int i = 0; i < nz; i++, k_1 += nx*ny)
 		{
-			output[k_1] = ldg(&numerator[k_1]) / ldg(&denominator[k_1]);
+			output[k_1] = ldg(&numerator[k_1]) / (ldg(&denominator[k_1]) + 0.001f);
 			output[k_1] *= output[k_1];
 			output[k_1] *= output[k_1];
 			output[k_1] *= output[k_1];
@@ -101,3 +101,5 @@ int win
 		}
 	}
 }
+
+

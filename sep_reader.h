@@ -44,6 +44,8 @@ public:
     {
         if ((sep_head = fopen(sepname,"r")) == NULL) {
           std::cout << "Error opening SEP header: " << sepname << std::endl;
+		  char ch;
+		  std::cin >> ch;
           exit(1);
         }  
         GetHeaderInfo ( open_data_file );
@@ -74,6 +76,8 @@ public:
             if ( strncmp ( vec[k].c_str() , in , vec[k].size() ) == 0 )
             {
                 std::cout << "duplicate header label, check SEP file." << std::endl;
+				char ch;
+				std::cin >> ch;
                 exit(1);
             }
         }
@@ -81,6 +85,7 @@ public:
 
     void GetHeaderInfo ( bool open_data_file = true )
     {
+		std::cout << "get header info: 1" << std::endl;
         header_labels . clear ();
         sort_order    . clear ();
         char junk1[1024];
@@ -88,11 +93,15 @@ public:
         char *junk2;
         char in1[1024];
         char *in=in1;
+		std::cout << "get header info: 2" << std::endl;
+		
         while (!feof(sep_head)) {
           int ret = fscanf(sep_head, "%s", junk);
           if ( !ret )
           {
             std::cout << "fscan returns " << ret << std::endl;
+			char ch;
+			std::cin >> ch;
             exit(1);
           }
           if (strncmp(junk, "o1=",3)==0) { junk2 = junk + 3; sscanf(junk2, "%d", &o1); }
@@ -115,6 +124,7 @@ public:
             std::cout << "Headers File: " << in << std::endl;
             hdrs_name = std::string ( in );
           }
+		  
           if ( open_data_file )
           {
             if (strncmp(junk, "in=\"",4)==0) { 
@@ -122,7 +132,10 @@ public:
               strtok(junk2, "\"");
               sscanf(junk2, "%s", in); 
               std::cout << "Attempting to open data file: " << in << std::endl;
-              if ( ( sep_DATA = fopen ( in , "rw+" ) ) == NULL )
+			  //std::cout << "press key" << std::endl;
+			  //char ch;
+			  //std::cin >> ch;
+              if ( ( sep_DATA = fopen ( in , "rb" ) ) == NULL )
               {
                   std::cout << "Error opening data file: " << in << std::endl;
               }
@@ -132,13 +145,18 @@ public:
               junk2 = junk + 3; 
               sscanf(junk2, "%s", in); 
               std::cout << "Attempting to open data file: " << in << std::endl;
-              if ( ( sep_DATA = fopen ( in , "rw+" ) ) == NULL )
+			  //std::cout << "press key" << std::endl;
+			  //char ch;
+			  //std::cin >> ch;
+              if ( ( sep_DATA = fopen ( in , "rb" ) ) == NULL )
               {
                   std::cout << "Error opening data file: " << in << std::endl;
               }
             }
           }
+		  
         }
+		
         std::cout << n1 << " " << n2 << " " << n3 << std::endl;
         fclose(sep_head);
     }
@@ -146,7 +164,7 @@ public:
     void OpenDataFile ( char const * in )
     {
         std::cout << "Attempting to open data file: \"" << in << "\"" << std::endl;
-        if ( ( sep_DATA = fopen ( in , "rw+" ) ) == NULL )
+        if ( ( sep_DATA = fopen ( in , "rb" ) ) == NULL )
         {
             std::cout << "Error opening data file: \"" << in << "\"" << std::endl;
         }
@@ -174,7 +192,7 @@ public:
                     , bool byteswap = false
                     ) const 
     {
-      off64_t foffset, o64, x64, y64, n164, n264;
+      std::size_t foffset, o64, x64, y64, n164, n264;
       int status;
     
       status=1;
@@ -194,16 +212,21 @@ public:
         for(int O=0,i=0;O<no;O++)
         for(int Y=0;Y<ny;Y++,i+=nx)
         {
-          x64=(off64_t) x - (off64_t) o1;
-          y64=(off64_t) y+Y - (off64_t) o2;
-          o64=(off64_t) o+O - (off64_t) o3;
+			//char ch;
+			//std::cin >> ch;
+          x64=(std::size_t) x - (std::size_t) o1;
+          y64=(std::size_t) y+Y - (std::size_t) o2;
+          o64=(std::size_t) o+O - (std::size_t) o3;
           n164=n1;
           n264=n2;
           foffset = (o64*n164*n264 + y64*n164 + x64) * sizeof(float);
+		  //std::cout << "foffset:" << foffset << "   x=" << x64 << ";y=" << y64 << ";o=" << o64 << std::endl;
+          //_fseeki64(sep_DATA, foffset, SEEK_SET);
           fseek(sep_DATA, foffset, SEEK_SET);
           if(fread(&val[i], sizeof(float), nx, sep_DATA) == 0) {
-            std::cout << "Error reading sep value at x=" << x << " y=" << y << " o=" << o << std::endl;
-            return 0;
+            std::cout << "Error reading sep value at x=" << x64 << " y=" << y64 << " o=" << o64 << "    foffset=" << foffset << std::endl;
+			std::cout << "nx=" << nx << "  ny=" << ny << "  no=" << no << std::endl;
+            //return 0;
           }
           if (byteswap)
           {
@@ -226,7 +249,7 @@ public:
 
     int read_sepval(float *val, int x,int y,int o,int n,bool byteswap = false) const 
     {
-      off64_t foffset, o64, x64, y64, n164, n264;
+      std::size_t foffset, o64, x64, y64, n164, n264;
       int status;
     
       status=1;
@@ -240,12 +263,13 @@ public:
         status=0;
       }
       if (status == 1) {
-        x64=(off64_t) x - (off64_t) o1;
-        y64=(off64_t) y - (off64_t) o2;
-        o64=(off64_t) o - (off64_t) o3;
+        x64=(std::size_t) x - (std::size_t) o1;
+        y64=(std::size_t) y - (std::size_t) o2;
+        o64=(std::size_t) o - (std::size_t) o3;
         n164=n1;
         n264=n2;
         foffset = (o64*n164*n264 + y64*n164 + x64) * sizeof(float);
+        //_fseeki64(sep_DATA, foffset, SEEK_SET);
         fseek(sep_DATA, foffset, SEEK_SET);
         if(fread(val, sizeof(float), n, sep_DATA) == 0) {
           std::cout << "Error reading sep value at x=" << x << " y=" << y << " o=" << o << std::endl;

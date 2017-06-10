@@ -39,7 +39,9 @@ private:
 		{
 			for (int ind = 0; ind < devices; ind++)
 			{
-				device.push_back(new GPUDevice(ind));
+				std::stringstream ss_name;
+				ss_name << "GPU Device:" << i << "-" << ind;
+				device.push_back(new GPUDevice(ss_name.str(),ind));
 			}
 		}
 	}
@@ -47,7 +49,7 @@ private:
 	{
 		for (int i = 0; i < copies; i++)
 		{
-			device.push_back(new CPUDevice());
+			device.push_back(new CPUDevice("CPU Device:"+i));
 		}
 	}
 };

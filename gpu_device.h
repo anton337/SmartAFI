@@ -1,11 +1,13 @@
 #ifndef gpu_device_h
 #define gpu_device_h
 
+#include "cpu_device.h"
+
 #include "gpu_array.h"
 
 #include "freq_gpu_array.h"
 
-class GPUDevice : public ComputeDevice
+class GPUDevice : public CPUDevice
 {
 	std::size_t ind;
 
@@ -22,7 +24,8 @@ class GPUDevice : public ComputeDevice
 	cufftHandle plan1;
 
 public:
-	GPUDevice(std::size_t _ind)
+	GPUDevice(std::string _name,std::size_t _ind)
+		: CPUDevice(_name)
 	{
 		ind = _ind;
 		int major = 0, minor = 0;
@@ -52,10 +55,32 @@ public:
 		destroy_context();
 	}
 	
-	bool create(std::string name, int nx, int ny, int nz, float * dat = NULL, bool freq = false, bool keep_data = false)
+	bool create(
+		Token token
+		, int nx
+		, int ny
+		, int nz
+		, float * dat = NULL
+		, bool freq = false
+		, bool keep_data = false
+		)
 	{
-		return (freq)	? createArray<freqGPUArray>(name, nx*ny*nz, dat, keep_data) 
-						: createArray<GPUArray>(name, nx*ny*nz, dat, keep_data);
+		if (freq)
+		{
+			MESSAGE_ASSERT(token.type == FREQ_GPU, "create data array : type mismatch");
+			MESSAGE_ASSERT(token.nx == nx, "create data array : nx mismatch");
+			MESSAGE_ASSERT(token.ny == ny, "create data array : ny mismatch");
+			MESSAGE_ASSERT(token.nz == nz, "create data array : nz mismatch");
+			return createArray<freqGPUArray>(token, nx,ny,nz, dat, keep_data);
+		}
+		else
+		{
+			MESSAGE_ASSERT(token.type == GPU, "create data array : type mismatch");
+			MESSAGE_ASSERT(token.nx == nx, "create data array : nx mismatch");
+			MESSAGE_ASSERT(token.ny == ny, "create data array : ny mismatch");
+			MESSAGE_ASSERT(token.nz == nz, "create data array : nz mismatch");
+			return createArray<GPUArray>(token, nx,ny,nz, dat, keep_data);
+		}
 	}
 private:
 	CUfunction convolution_rotation_kernel;
@@ -85,60 +110,72 @@ private:
 	{
 		set_context();
 		_checkCudaErrors(cuModuleLoad(&cuModule, "cu_fft.ptx"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_fft.fatbin"));
 		_checkCudaErrors(cuModuleGetFunction(&convolution_rotation_kernel, cuModule, "Hadamard_slice_kernel"));
 	}
 	void load_shear()
 	{
 		set_context();
 		_checkCudaErrors(cuModuleLoad(&cuModule, "cu_shear.ptx"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_shear.fatbin"));
 		_checkCudaErrors(cuModuleGetFunction(&shear, cuModule, "Shear"));
 	}
 	void load_shear_time()
 	{
 		set_context();
 		_checkCudaErrors(cuModuleLoad(&cuModule, "cu_shear.ptx"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_shear.fatbin"));
 		_checkCudaErrors(cuModuleGetFunction(&shear_time, cuModule, "ShearTimeDomain"));
 	}
 	void load_zsmooth()
 	{
 		set_context();
 		_checkCudaErrors(cuModuleLoad(&cuModule, "cu_smooth.ptx"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_smooth.fatbin"));
 		_checkCudaErrors(cuModuleGetFunction(&zsmooth, cuModule, "zSmooth"));
 	}
 	void load_semblance_div()
 	{
 		set_context();
 		_checkCudaErrors(cuModuleLoad(&cuModule, "cu_semblance.ptx"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_semblance.fatbin"));
 		_checkCudaErrors(cuModuleGetFunction(&semblance_div, cuModule, "SemblanceDiv"));
 	}
 	void load_semblance_max()
 	{
 		set_context();
 		_checkCudaErrors(cuModuleLoad(&cuModule, "cu_semblance.ptx"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_semblance.fatbin"));
 		_checkCudaErrors(cuModuleGetFunction(&semblance_max, cuModule, "SemblanceMax"));
 	}
 	void load_semblance()
 	{
 		set_context();
 		_checkCudaErrors(cuModuleLoad(&cuModule, "cu_semblance.ptx"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_semblance.fatbin"));
 		_checkCudaErrors(cuModuleGetFunction(&semblance, cuModule, "Semblance"));
 	}
 	void load_transpose()
 	{
 		set_context();
 		_checkCudaErrors(cuModuleLoad(&cuModule, "cu_transpose.ptx"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_transpose.fatbin"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_transpose.fatbin"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_transpose.fatbin"));
 		_checkCudaErrors(cuModuleGetFunction(&transpose_constY, cuModule, "transpose_constY"));
 	}
 	void load_data_transfer_real_cplx()
 	{
 		set_context();
 		_checkCudaErrors(cuModuleLoad(&cuModule, "cu_data_transfer.ptx"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_data_transfer.fatbin"));
 		_checkCudaErrors(cuModuleGetFunction(&data_transfer_real_cplx, cuModule, "data_transfer_real_cplx"));
 	}
 	void load_data_transfer_cplx_real()
 	{
 		set_context();
 		_checkCudaErrors(cuModuleLoad(&cuModule, "cu_data_transfer.ptx"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_data_transfer.fatbin"));
 		_checkCudaErrors(cuModuleGetFunction(&data_transfer_cplx_real, cuModule, "data_transfer_cplx_real"));
 	}
 
@@ -147,9 +184,9 @@ public:
 		std::size_t nz
 		, std::size_t ny
 		, std::size_t nx
-		, std::string rotated_kernel_name_freq
-		, std::string signal_name_freq
-		, std::string rotated_signal_name_freq
+		, Token rotated_kernel_token_freq
+		, Token signal_token_freq
+		, Token rotated_signal_token_freq
 		)
 	{
 		set_context();
@@ -161,9 +198,9 @@ public:
 		int block_z = 1;
 		dim3 block = dim3(block_x, block_y, block_z);
 		dim3 grid = dim3((nx + block_x - 1) / block_x, (ny + block_y - 1) / block_y, 1);
-		cufftComplex * fk_input  = (cufftComplex*)get(signal_name_freq);
-		cufftComplex * fk_kernel = (cufftComplex*)get(rotated_kernel_name_freq);
-		cufftComplex * fk_output = (cufftComplex*)get(rotated_signal_name_freq);
+		cufftComplex * fk_input  = (cufftComplex*)get(signal_token_freq);
+		cufftComplex * fk_kernel = (cufftComplex*)get(rotated_kernel_token_freq);
+		cufftComplex * fk_output = (cufftComplex*)get(rotated_signal_token_freq);
 		void *args[6] = { &sizex, &sizey, &sizez, &fk_input, &fk_kernel, &fk_output };
 		{
 			_checkCudaErrors(cuLaunchKernel(convolution_rotation_kernel,
@@ -181,8 +218,8 @@ public:
 		, std::size_t nx
 		, float shear_y
 		, float shear_x
-		, std::string rotated_freq
-		, std::string sheared_freq
+		, Token rotated_freq
+		, Token sheared_freq
 		)
 	{
 		set_context();
@@ -217,8 +254,8 @@ public:
 		, std::size_t nx
 		, float shear_y
 		, float shear_x
-		, std::string rotated_time
-		, std::string sheared_time
+		, Token rotated_time
+		, Token sheared_time
 		)
 	{
 		set_context();
@@ -283,22 +320,20 @@ public:
 		std::size_t nz
 		, std::size_t ny
 		, std::size_t nx
-		, std::string sheared_freq
-		, std::string sheared_time
+		, Token sheared_freq
+		, Token sheared_time
 		)
 	{
 		set_context();
 		
 		cufftComplex * a_fft = (cufftComplex*)get(sheared_freq);
-		std::string out_cplx_name = sheared_freq + "_cplx";
-		cufftComplex * a_cplx_out = (cufftComplex*)get(out_cplx_name);
+		Token out_cplx_token(sheared_freq.name + "_cplx",FREQ_GPU,nz,ny,nx);
+		cufftComplex * a_cplx_out = (cufftComplex*)get(out_cplx_token);
 		
 		if (nz==1)
 			cufftErrchk(cufftExecC2C(plan1, a_fft, a_cplx_out, CUFFT_INVERSE));
 		else
 			cufftErrchk(cufftExecC2C(plan, a_fft, a_cplx_out, CUFFT_INVERSE));
-    //verifyGPU("inv fft before:",nx,ny,nz,a_fft);
-    //verifyGPU("inv fft after:",nx,ny,nz,a_cplx_out);
 
 		float * a_out = (float*)get(sheared_time);
 		int NX = nx;
@@ -316,7 +351,6 @@ public:
 			0,
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
-    //verifyGPU("inv fft:",nx,ny,nz,a_out);
 		
 	}
 
@@ -324,7 +358,7 @@ public:
 		std::size_t nz
 		, std::size_t ny
 		, std::size_t nx
-		, std::string data
+		, Token data
 		)
 	{
 		set_context();
@@ -338,7 +372,6 @@ public:
 		int block_z = 1;
 		dim3 block = dim3(block_x, block_y, block_z);
 		dim3 grid = dim3((nx + block_x - 1) / block_x, (ny + block_y - 1) / block_y, 1);
-    //verifyGPU("pre zsmooth",nx,ny,nz,a_data);
 		void *args[5] = { &NZ, &NY, &NX, &alpha, &a_data };
 		_checkCudaErrors(cuLaunchKernel(zsmooth,
 			grid.x, grid.y, grid.z,
@@ -346,16 +379,15 @@ public:
 			0,
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
-    //verifyGPU("post zsmooth",nx,ny,nz,a_data);
 	}
 
 	void compute_fault_likelihood(
 		std::size_t nz
 		, std::size_t ny
 		, std::size_t nx
-		, std::string num
-		, std::string den
-		, std::string data
+		, Token num
+		, Token den
+		, Token data
 		)
 	{
 		set_context();
@@ -377,19 +409,16 @@ public:
 			0,
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
-    //verifyGPU("numerator",nx,ny,nz,a_num);
-    //verifyGPU("denominator",nx,ny,nz,a_den);
-    //verifyGPU("semblance",nx,ny,nz,a_data);
 	}
 
 	void update_maximum(
 		std::size_t nz
 		, std::size_t ny
 		, std::size_t nx
-		, std::string fh
-		, std::string optimum_fh
-		//, std::string optimum_th
-		//, std::string optimum_phi
+		, Token fh
+		, Token optimum_fh
+		//, Token optimum_th
+		//, Token optimum_phi
 		)
 	{
 		set_context();
@@ -410,10 +439,8 @@ public:
 			0,
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
-    //verifyGPU("data",nx,ny,nz,a_data);
-    //verifyGPU("optimum",nx,ny,nz,a_optimum);
 	}
-	void compute_semblance(int win, int nz, int ny, int nx, std::string transpose, std::string numerator, std::string denominator)
+	void compute_semblance(int win, int nz, int ny, int nx, Token transpose, Token numerator, Token denominator)
 	{
 		set_context();
 		int WIN = win;
@@ -435,12 +462,34 @@ public:
 			0,
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
-    //verifyGPU("semb data:",nx,ny,nz,a_data);
-    //verifyGPU("semb num:",nx,ny,nz,a_num);
-    //verifyGPU("semb den:",nx,ny,nz,a_den);
+		//{
+		//	float * transpose_arr = new float[nx*ny*nz];
+		//	get_output(transpose, transpose_arr);
+		//	Token cpu_transpose(transpose.name + "_cpu", CPU, nz, ny, nx);
+		//	CPUDevice::create(cpu_transpose, nz, ny, nx, transpose_arr);
+
+		//	float * numerator_arr = new float[nx*ny*nz];
+		//	get_output(numerator, numerator_arr);
+		//	Token cpu_numerator(numerator.name + "_cpu", CPU, nz, ny, nx);
+		//	CPUDevice::create(cpu_numerator, nz, ny, nx, numerator_arr);
+
+		//	float * denominator_arr = new float[nx*ny*nz];
+		//	get_output(denominator, denominator_arr);
+		//	Token cpu_denominator(denominator.name + "_cpu", CPU, nz, ny, nx);
+		//	CPUDevice::create(cpu_denominator, nz, ny, nx, denominator_arr);
+
+		//	CPUDevice::compute_semblance(win, nz, ny, nx, cpu_transpose, cpu_numerator, cpu_denominator);
+		//	set(numerator, numerator_arr);
+		//	set(denominator, denominator_arr);
+		//	remove(cpu_transpose);
+		//	remove(cpu_numerator);
+		//	remove(cpu_denominator);
+		//}
+    
+
 		remove(transpose);
 	}
-	void compute_transpose(int nx,int ny,int nz,std::string input,std::string transpose)
+	void compute_transpose(int nx,int ny,int nz,Token input,Token transpose)
 	{
 		set_context();
 		int NX = nx;
@@ -452,9 +501,8 @@ public:
 		dim3 block = dim3(block_x, block_y, block_z);
 		dim3 grid = dim3((nx + block_x - 1) / block_x, (ny + block_y - 1) / block_y, 1);
 		float * a_input = (float*)get(input);
-		//verifyGPU("GPU input", nx, ny, nz, a_input,true);
+		
 		float * a_transpose = (float*)get(transpose);
-		//verifyGPU("GPU transpose before", nx, ny, nz, a_transpose, true);
 		void *args[5] = { &NX, &NY, &NZ, &a_input, &a_transpose };
 		_checkCudaErrors(cuLaunchKernel(transpose_constY,
 			grid.x, grid.y, grid.z,
@@ -462,16 +510,30 @@ public:
 			0,
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
-		//verifyGPU("GPU transpose after", nx, ny, nz, a_transpose, true);
+		//if (cuCtxSynchronize() != CUDA_SUCCESS)
+		//{
+		//	float * input_arr = new float[nx*ny*nz];
+		//	get_output(input, input_arr);
+		//	Token cpu_input(input.name + "_cpu", CPU, nz, ny, nx);
+		//	CPUDevice::create(cpu_input, nz, ny, nx, input_arr);
+		//	float * transpose_arr = new float[nx*ny*nz];
+		//	get_output(transpose, transpose_arr);
+		//	Token cpu_transpose(transpose.name + "_cpu", CPU, nz, ny, nx);
+		//	CPUDevice::create(cpu_transpose, nz, ny, nx, transpose_arr);
+		//	CPUDevice::compute_transpose(nx, ny, nz, cpu_input, cpu_transpose);
+		//	set(transpose, transpose_arr);
+		//	remove(cpu_transpose);
+		//	remove(cpu_input);
+		//}
 	}
-	void fft(int nz, int ny, int nx, std::string in, std::string out)
+	void fft(int nz, int ny, int nx, Token in, Token out)
 	{
 		set_context();
 		float * a_input = (float*)get(in);
-		std::string in_cplx_name = in + "_cplx";
-		create(in_cplx_name, nz, ny, nx, NULL, true);
+		Token in_cplx_token(in.name + "_cplx",FREQ_GPU, nz, ny, nx);
+		create(in_cplx_token, nz, ny, nx, NULL, true);
 		create(out, nz, ny, nx, NULL, true);
-		cufftComplex * in_cplx = (cufftComplex*)get(in_cplx_name);
+		cufftComplex * in_cplx = (cufftComplex*)get(in_cplx_token);
 		int NX = nx;
 		int NY = ny;
 		int NZ = nz;
@@ -487,18 +549,15 @@ public:
 			0,
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
-		//verifyGPU("in cplx", nx, ny, nz, in_cplx, true);
 		cufftComplex * a_fft = (cufftComplex*)get(out);
-		//verifyGPU("a fft", nx, ny, nz, a_fft, true);
 		
 		if (nz == 1)
 			cufftErrchk(cufftExecC2C(plan1, in_cplx, a_fft, CUFFT_FORWARD));
 		else
 			cufftErrchk(cufftExecC2C(plan, in_cplx, a_fft, CUFFT_FORWARD));
 
-		//verifyGPU("a fft after", nx, ny, nz, a_fft, true);
 		//_checkCudaErrors(cuCtxSynchronize());
-		remove(in_cplx_name);
+		remove(in_cplx_token);
 		remove(in);
 	}
 	

@@ -2,7 +2,7 @@
 #define cuda_stuff_h
 
 #ifndef BLOCK_SIZE
-#define BLOCK_SIZE 32
+#define BLOCK_SIZE 16
 #endif
 
 #ifndef _checkCudaErrors

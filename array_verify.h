@@ -43,6 +43,7 @@ void verify(std::string message, std::size_t nx, std::size_t ny, std::size_t nz,
 
 void verifyGPU(std::string message, std::size_t nx, std::size_t ny, std::size_t nz, float * arr, bool pause = false)
 {
+	
 	float min_val = 1000000;
 	float max_val = -1000000;
 	float val;
@@ -56,6 +57,7 @@ void verifyGPU(std::string message, std::size_t nx, std::size_t ny, std::size_t 
 		min_val = (val < min_val) ? val : min_val;
 	}
 	delete[] tmp;
+	
 	std::cout << message << ": " << nx << "x" << ny << "x" << nz << " === " << min_val << " --- " << max_val << std::endl;
 	if (pause)
 	{

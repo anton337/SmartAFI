@@ -1,7 +1,5 @@
 #include <cuda.h>
-#include <cufft.h>
-#include <cuda_profiler_api.h>
-#include <stdio.h>
+
 
 template<typename T>
 __device__ __forceinline__ T ldg(const T* ptr) {
@@ -11,6 +9,7 @@ __device__ __forceinline__ T ldg(const T* ptr) {
 	return *ptr;
 #endif
 }
+
 
 extern "C"
 __global__
@@ -22,6 +21,7 @@ int nx
 , float * out // XYZ -> ZYX
 )
 {
+	
 	int kx = blockIdx.x*blockDim.x + threadIdx.x;
 	int ky = blockIdx.y*blockDim.y + threadIdx.y;
 	if (kx < nx && ky < ny)
@@ -30,9 +30,13 @@ int nx
 		// output is ordered by {Z,Y,X}
 		// out[z*num_y*num_x + y*num_x + x] := in[x*num_y*num_z + y*num_z + z]
 		//float *  in_xy = &in[kx*ny*nz + ky*nz];
-		for (std::size_t kz = 0; kz < nz; kz++)
+		int k_0 = kx + ky*nx;
+		int k_1 = kx*ny*nz + ky*nz;
+		int i = 0;
+		for (; i < nz; i++, k_0+=ny*nx, k_1++)
 		{
-			out[(kz*ny + ky)*nx + kx] = ldg(&in[(kx*ny + ky)*nz + kz]);
+			out[k_0] = ldg(&in[k_1]);
 		}
 	}
+	
 }

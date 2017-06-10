@@ -33,11 +33,11 @@ void run_some_tests	( DisplayUpdate * d_global_update
 		//n3 = 681 (number of traces in crossline direction)
 
 		std::size_t mpad = 32;
-		std::size_t scale = 1;
+		std::size_t scale = 4;
 
-		std::size_t tile_size_x = scale * 128 - 2 * mpad;
-		std::size_t tile_size_y = scale * 128 - 2 * mpad;
-		std::size_t tile_size_z = scale * 128 - 2 * mpad;
+		std::size_t tile_size_x = scale * 128 - 2 * scale * mpad;
+		std::size_t tile_size_y = scale * 128 - 2 * scale * mpad;
+		std::size_t tile_size_z = scale * 128 - 2 * scale * mpad;
 
 		std::size_t orig_size_x = nx + 2 * mpad;
 		std::size_t orig_size_y = ny + 2 * mpad;

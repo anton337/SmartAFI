@@ -5,11 +5,11 @@ class freqGPUArray : public DataArray
 {
 	cufftComplex * data;
 public:
-	freqGPUArray(std::string name
-				, std::size_t size)
-		: DataArray(name, size,FREQ_GPU)
+	freqGPUArray( Token token
+				, std::size_t nx,std::size_t ny,std::size_t nz)
+		: DataArray(token,nx,ny,nz,FREQ_GPU)
 	{
-
+		MESSAGE_ASSERT(token.type == FREQ_GPU, "type mismatch");
 	}
 	void put(void * _data)
 	{
@@ -62,6 +62,27 @@ public:
 	void destroy()
 	{
 		gpuErrchk(cudaFree(data));
+	}
+	std::string get_validation()
+	{
+		{
+			float min_val = 1000000;
+			float max_val = -1000000;
+			float val;
+			std::size_t size = get_size();
+			cufftComplex * tmp = new cufftComplex[size];
+			cudaMemcpy(tmp, data, sizeof(cufftComplex)*size, cudaMemcpyDeviceToHost);
+			for (std::size_t k = 0; k < size; k++)
+			{
+				val = sqrtf(tmp[k].x*tmp[k].x + tmp[k].y*tmp[k].y);
+				max_val = (val > max_val) ? val : max_val;
+				min_val = (val < min_val) ? val : min_val;
+			}
+			delete[] tmp;
+			std::stringstream ss;
+			ss << "\t" << get_nx() << "x" << get_ny() << "x" << get_nz() << " === " << min_val << " --- " << max_val << std::endl;
+			return ss.str();
+		}
 	}
 };
 
