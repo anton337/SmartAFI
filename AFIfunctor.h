@@ -71,22 +71,30 @@ public:
 	  Token sheared_denominator_token_freq("sheared_denominator_freq", FREQ_GPU, nz, ny, nx); // this also serves as the semblance output, but it is repopulated with fresh data with each shear iteration, so it's ok
 	  Token fault_likelihood_token("fault_likelihood", GPU, nz, ny, nx);
 	  Token optimal_fault_likelihood_token("optimal_fault_likelihood", GPU, nz, ny, nx);
+	  Token optimal_theta_token("optimal_theta", GPU, nz, ny, nx);
+	  Token optimal_thin_token("optimal_thin", GPU, nz, ny, nx);
 	  Token output_fault_likelihood_token("output_fault_likelihood", GPU, nx, ny, nz);
+	  Token output_theta_token("output_theta", GPU, nx, ny, nz);
+	  Token output_thin_token("output_thin", GPU, nx, ny, nz);
 
     {
 	  	d->create(input_token, nx, ny, nz, in, false, true); // allocate input array (time domain) {X,Y,Z}
 	  	d->create(transpose_token, nz, ny, nx, NULL, false); // create transpose array (time domain) {Z,Y,X}
 	  	d->compute_transpose(nx, ny, nz, input_token, transpose_token);
 
-		d->get_output(transpose_token, tile1);
-		tile_display_update->update("input", nz, ny, nx, tile1);
+		  d->get_output(transpose_token, tile1);
+		  tile_display_update->update("input", nz, ny, nx, tile1);
 
 	  	d->init_fft(nz, ny, nx);
 	  	d->initialize_semblance(nz,ny,nx,transpose_token,numerator_token,denominator_token,numerator_token_freq,denominator_token_freq);
 	  	d->create(optimal_fault_likelihood_token, nz, ny, nx);
-		d->get_output(optimal_fault_likelihood_token, tile2);
-		tile_display_update->update2("initial fault likelihood", nz, ny, nx, tile2);
+		  d->get_output(optimal_fault_likelihood_token, tile2);
+		  tile_display_update->update2("initial fault likelihood", nz, ny, nx, tile2);
+	  	d->create(optimal_theta_token, nz, ny, nx);
+	  	d->create(optimal_thin_token, nz, ny, nx);
 	  	d->create(output_fault_likelihood_token, nx, ny, nz);
+	  	d->create(output_theta_token, nx, ny, nz);
+	  	d->create(output_thin_token, nx, ny, nz);
 	  	d->create(rotated_numerator_token_freq, nz, ny, nx, NULL, true);
 	  	d->create(rotated_denominator_token_freq, nz, ny, nx, NULL, true);
 	  	d->create(sheared_numerator_token_freq, nz, ny, nx, NULL, true);
@@ -150,13 +158,14 @@ public:
 	  				, nx
 	  				, shear_y
 	  				, shear_x
+            , theta
 	  				, rotated_numerator_token_freq
 	  				, rotated_denominator_token_freq
 	  				, sheared_numerator_token_freq
 	  				, sheared_denominator_token_freq/*this guys is recycled internally, which is fine, since it is repopulated with fresh data with each shear iteration*/
 	  				, fault_likelihood_token/*time domain {Z,Y,X}*/
 	  				, optimal_fault_likelihood_token
-	  				//, optimal_theta_token
+	  				, optimal_theta_token
 	  				//, optimal_phi_token
 	  				);
 
@@ -170,7 +179,11 @@ public:
 
 	  	d->destroy_fft();
 
+      d->compute_thin(nz, ny, nx, optimal_fault_likelihood_token, optimal_theta_token, optimal_thin_token);
+
 	  	d->compute_transpose(nz, ny, nx, optimal_fault_likelihood_token, output_fault_likelihood_token);
+
+	  	d->compute_transpose(nz, ny, nx, optimal_theta_token, output_theta_token);
 
 		  d->get_output(output_fault_likelihood_token, in);
 

@@ -45,8 +45,10 @@ void SemblanceMax(
 int nx
 , int ny
 , int nz
+, float theta
 , float * data // (in)
 , float * max_data // (out)
+, float * max_theta // (out)
 )
 {
 	int kx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -59,6 +61,7 @@ int nx
 			if (ldg(&data[k_1]) > max_data[k_1])
 			{
 				max_data[k_1] = ldg(&data[k_1]);
+        max_theta[k_1] = theta;
 			}
 		}
 	}

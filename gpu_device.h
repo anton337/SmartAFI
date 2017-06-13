@@ -46,6 +46,7 @@ public:
 		load_semblance();
 		load_semblance_div();
 		load_semblance_max();
+	  load_thin();
 		load_transpose();
 		load_data_transfer_real_cplx();
 		load_data_transfer_cplx_real();
@@ -90,6 +91,7 @@ private:
 	CUfunction semblance;
 	CUfunction semblance_div;
 	CUfunction semblance_max;
+	CUfunction thin_fun;
 	CUfunction transpose_constY;
 	CUfunction data_transfer_real_cplx;
 	CUfunction data_transfer_cplx_real;
@@ -147,6 +149,13 @@ private:
 		_checkCudaErrors(cuModuleLoad(&cuModule, "cu_semblance.ptx"));
 		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_semblance.fatbin"));
 		_checkCudaErrors(cuModuleGetFunction(&semblance_max, cuModule, "SemblanceMax"));
+	}
+	void load_thin()
+	{
+		set_context();
+		_checkCudaErrors(cuModuleLoad(&cuModule, "cu_thin.ptx"));
+		//_checkCudaErrors(cuModuleLoad(&cuModule, "C:/ProgramData/NVIDIA Corporation/CUDA Samples/v8.0/7_CUDALibraries/smartAFI/x64/Release/cu_thin.fatbin"));
+		_checkCudaErrors(cuModuleGetFunction(&thin_fun, cuModule, "Thin"));
 	}
 	void load_semblance()
 	{
@@ -410,20 +419,20 @@ public:
 			NULL, args, NULL));
 		_checkCudaErrors(cuCtxSynchronize());
 	}
-
-	void update_maximum(
-		std::size_t nz
-		, std::size_t ny
-		, std::size_t nx
-		, Token fh
-		, Token optimum_fh
-		//, Token optimum_th
-		//, Token optimum_phi
-		)
-	{
+  
+  virtual void compute_thin(
+    std::size_t nz
+    , std::size_t ny
+    , std::size_t nx
+    , Token fh
+    , Token th
+    , Token thin
+    )
+  {
 		set_context();
-		float * a_data = (float*)get(fh);
-		float * a_optimum = (float*)get(optimum_fh);
+		float * a_fh = (float*)get(fh);
+		float * a_th = (float*)get(th);
+		float * a_thin = (float*)get(thin);
 		int NX = nx;
 		int NY = ny;
 		int NZ = nz;
@@ -432,7 +441,40 @@ public:
 		int block_z = 1;
 		dim3 block = dim3(block_x, block_y, block_z);
 		dim3 grid = dim3((nx + block_x - 1) / block_x, (ny + block_y - 1) / block_y, 1);
-		void *args[6] = { &NZ, &NY, &NX, &a_data, &a_optimum };
+		void *args[6] = { &NX, &NY, &NZ, &a_th, &a_fh, &a_thin };
+		_checkCudaErrors(cuLaunchKernel(thin_fun,
+			grid.x, grid.y, grid.z,
+			block.x, block.y, block.z,
+			0,
+			NULL, args, NULL));
+		_checkCudaErrors(cuCtxSynchronize());
+  }
+
+	void update_maximum(
+		std::size_t nz
+		, std::size_t ny
+		, std::size_t nx
+    , float theta
+		, Token fh
+		, Token optimum_fh
+		, Token optimum_th
+		//, Token optimum_phi
+		)
+	{
+		set_context();
+		float * a_data = (float*)get(fh);
+		float * a_optimum = (float*)get(optimum_fh);
+    float * a_optimum_th = (float*)get(optimum_th);
+		int NX = nx;
+		int NY = ny;
+		int NZ = nz;
+    float THETA = theta;
+		int block_x = BLOCK_SIZE;
+		int block_y = BLOCK_SIZE;
+		int block_z = 1;
+		dim3 block = dim3(block_x, block_y, block_z);
+		dim3 grid = dim3((nx + block_x - 1) / block_x, (ny + block_y - 1) / block_y, 1);
+		void *args[7] = { &NZ, &NY, &NX, &THETA, &a_data, &a_optimum, &a_optimum_th };
 		_checkCudaErrors(cuLaunchKernel(semblance_max,
 			grid.x, grid.y, grid.z,
 			block.x, block.y, block.z,

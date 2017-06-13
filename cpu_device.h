@@ -180,13 +180,28 @@ public:
 		exit(0);
 	}
 
+  virtual void compute_thin(
+    std::size_t nz
+    , std::size_t ny
+    , std::size_t nx
+    , Token fh
+    , Token th
+    , Token thin
+    )
+	{
+		std::cout << "cpu compute thin not implemented yet" << std::endl;
+		char ch; std::cin >> ch;
+		exit(0);
+	}
+
 	void update_maximum(
 		std::size_t nz
 		, std::size_t ny
 		, std::size_t nx
+    , float theta
 		, Token fh
 		, Token optimum_fh
-		//, Token optimum_th
+		, Token optimum_th
 		//, Token optimum_phi
 		)
 	{

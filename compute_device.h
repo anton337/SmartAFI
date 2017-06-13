@@ -283,13 +283,23 @@ public:
 		, Token data
 		) = 0;
 
+  virtual void compute_thin(
+    std::size_t nz
+    , std::size_t ny
+    , std::size_t nx
+    , Token fh
+    , Token th
+    , Token thin
+    ) = 0;
+
 	virtual void update_maximum(
 		std::size_t nz
 		, std::size_t ny
 		, std::size_t nx
+    , float theta
 		, Token fh
 		, Token optimum_fh
-		//, Token optimum_th
+		, Token optimum_th
 		//, Token optimum_phi
 		) = 0;
 
@@ -299,13 +309,14 @@ public:
 		, int nx
 		, float shear_y
 		, float shear_x
+    , float theta
 		, Token rotated_numerator_token_time
 		, Token rotated_denominator_token_time
 		, Token sheared_numerator_token_time
 		, Token sheared_denominator_token_time/*this guys is recycled internally, which is fine, since it is repopulated with fresh data with each shear iteration*/
 		, Token fault_likelihood_token/*time domain {Z,Y,X}*/
 		, Token optimal_fault_likelihood_token
-		//, Token optimal_theta_token
+		, Token optimal_theta_token
 		//, Token optimal_phi_token
 		)
 	{
@@ -321,9 +332,10 @@ public:
 		compute_fault_likelihood(nz, ny, nx, sheared_numerator_token_time, sheared_denominator_token_time, fault_likelihood_token);
 		// update max F
 		update_maximum(nz, ny, nx
+      , theta
 			, fault_likelihood_token
 			, optimal_fault_likelihood_token
-			//, optimal_theta_token
+			, optimal_theta_token
 			//, optimal_phi_token
 			);
 		remove(fault_likelihood_token);
@@ -355,13 +367,14 @@ public:
 		, int nx
 		, float shear_y
 		, float shear_x
+    , float theta
 		, Token rotated_numerator_token_freq
 		, Token rotated_denominator_token_freq
 		, Token sheared_numerator_token_freq
 		, Token sheared_denominator_token_freq/*this guys is recycled internally, which is fine, since it is repopulated with fresh data with each shear iteration*/
 		, Token fault_likelihood_token/*time domain {Z,Y,X}*/
 		, Token optimal_fault_likelihood_token
-		//, Token optimal_theta_token
+		, Token optimal_theta_token
 		//, Token optimal_phi_token
 		)
 	{
@@ -382,13 +395,26 @@ public:
 		//remove(den_token);
 		// update max F
 		update_maximum(nz, ny, nx
+      , theta
 			, fault_likelihood_token
 			, optimal_fault_likelihood_token
-			//, optimal_theta_token
+			, optimal_theta_token
 			//, optimal_phi_token
 			);
 		//remove(fault_likelihood_token);
 	}
+
+  void compute_thin(
+    int nz
+    , int ny
+    , int nx
+    , Token optimal_fault_likelihood_token
+    , Token optimal_theta_token
+    , Token thin_token
+    )
+  {
+
+  }
 
 };
 
