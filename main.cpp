@@ -45,6 +45,8 @@
 
 #include "sep_reader.h"
 
+#include "marching_cubes.h"
+
 GLfloat xRotated, yRotated, zRotated;
 
 float Distance = 5;
@@ -259,6 +261,9 @@ JNIEXPORT void JNICALL Java_AFI_AFI
 
 int main(int argc, char** argv)
 {
+
+  MarchingCubes * marching_cubes = new MarchingCubes();
+
 	//{
 	//	std::cout << "press key to start" << std::endl;
 	//	char ch;
