@@ -16,6 +16,20 @@ class MarchingCubes
 
   char * type = NULL;
 
+  struct point
+  {
+    float x,y,z;
+    point(float _x,float _y,float _z)
+      : x(_x) , y(_y) , z(_z) {   }
+  };
+
+  struct polygon
+  {
+    point p1,p2,p3;
+    polygon(point _p1,point _p2,point _p3)
+      : p1(_p1) , p2(_p2) , p3(_p3) {   }
+  };
+
 public:
 
   MarchingCubes()
@@ -54,7 +68,6 @@ public:
   }
 
   void initCycleTable(){
-
     std::cout << "opening file" << std::endl;
     std::string line;
     std::ifstream myfile ("cycleTable");
@@ -81,11 +94,12 @@ public:
       myfile.close();
     }
     else std::cout << "Unable to open file" << std::endl; 
-
+    std::cout << "done parsing cycleTable" << std::endl;
   }
 
   void operator()(std::size_t nx,std::size_t ny,std::size_t nz,float * dat)
   {
+    std::cout << "p1" << std::endl;
     std::size_t size = nx*ny*nz;
     type = new char[size];
 
@@ -93,6 +107,7 @@ public:
     {
       type[i] = 0;
     }
+    std::cout << "p2" << std::endl;
 
     for(int i=0;i<size;i++)
     {
@@ -101,6 +116,7 @@ public:
         type[i] |= 1 << 0;
       }
     }
+    std::cout << "p3" << std::endl;
 
     float * tmp = &dat[1];
     for(int x=0,i=0;x<nx;x++)
@@ -115,6 +131,7 @@ public:
         }
       }
     }
+    std::cout << "p4" << std::endl;
 
     tmp = &dat[nz];
     for(int x=0,i=0;x<nx;x++)
@@ -129,6 +146,7 @@ public:
         }
       }
     }
+    std::cout << "p5" << std::endl;
 
     tmp = &dat[nz+1];
     for(int x=0,i=0;x<nx;x++)
@@ -143,6 +161,7 @@ public:
         }
       }
     }
+    std::cout << "p6" << std::endl;
 
     std::size_t x_offset = nz*ny;
     tmp = &dat[x_offset];
@@ -158,6 +177,7 @@ public:
         }
       }
     }
+    std::cout << "p7" << std::endl;
 
     tmp = &dat[x_offset+1];
     for(int x=0,i=0;x<nx;x++)
@@ -172,6 +192,7 @@ public:
         }
       }
     }
+    std::cout << "p8" << std::endl;
 
     tmp = &dat[x_offset+nz];
     for(int x=0,i=0;x<nx;x++)
@@ -186,6 +207,7 @@ public:
         }
       }
     }
+    std::cout << "p9" << std::endl;
 
     tmp = &dat[x_offset+nz+1];
     for(int x=0,i=0;x<nx;x++)
@@ -200,17 +222,63 @@ public:
         }
       }
     }
+    std::cout << "p10" << std::endl;
 
+    std::vector<polygon> polygons;
 
     for(int x=0,i=0;x<nx;x++)
     for(int y=0;y<ny;y++)
     for(int z=0;z<nz;z++,i++)
     {
-      if(type[i] != 0)
+      std::vector<std::vector<int> > const & cycle = cycleTable[(int)(unsigned char)type[i]];
+      for(int k=0;k<cycle.size();k++)
       {
-        
+        std::vector<point> points;
+        for(int j=0;j<cycle[k].size();j++)
+        {
+          int edge_ind = cycle[k][j];
+          int pt1_ind = edges[edge_ind][0];
+          int pt2_ind = edges[edge_ind][1];
+          points.push_back( point ( x+0.5f*((int)((pt1_ind/4)%2>0) + (int)((pt2_ind/4)%2>0))
+                                  , y+0.5f*((int)((pt1_ind/2)%2>0) + (int)((pt2_ind/2)%2>0))
+                                  , z+0.5f*((int)((pt1_ind  )%2>0) + (int)((pt2_ind  )%2>0))
+                                  )
+                          );
+        }
+        switch(cycle[k].size())
+        {
+          case 3:
+            polygons.push_back(polygon(points[0],points[1],points[2]));
+            break;
+          case 4:
+            polygons.push_back(polygon(points[0],points[1],points[2]));
+            polygons.push_back(polygon(points[2],points[1],points[3]));
+            break;
+          case 5:
+            polygons.push_back(polygon(points[0],points[1],points[2]));
+            polygons.push_back(polygon(points[2],points[1],points[3]));
+            polygons.push_back(polygon(points[1],points[3],points[4]));
+            break;
+          case 6:
+            polygons.push_back(polygon(points[0],points[1],points[2]));
+            polygons.push_back(polygon(points[2],points[1],points[3]));
+            polygons.push_back(polygon(points[2],points[3],points[4]));
+            polygons.push_back(polygon(points[4],points[3],points[5]));
+            break;
+          case 7:
+            polygons.push_back(polygon(points[0],points[1],points[2]));
+            polygons.push_back(polygon(points[2],points[1],points[3]));
+            polygons.push_back(polygon(points[2],points[3],points[4]));
+            polygons.push_back(polygon(points[4],points[3],points[5]));
+            polygons.push_back(polygon(points[4],points[5],points[6]));
+            break;
+          default:
+            break;
+        }
       }
     }
+
+    std::cout << "polygons:" << polygons.size() << std::endl;
 
     delete [] type;
     type = NULL;

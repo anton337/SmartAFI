@@ -262,7 +262,20 @@ JNIEXPORT void JNICALL Java_AFI_AFI
 int main(int argc, char** argv)
 {
 
-  MarchingCubes * marching_cubes = new MarchingCubes();
+  {
+    std::cout << "marching cubes: start" << std::endl;
+    MarchingCubes * marching_cubes = new MarchingCubes();
+    int nx=100;
+    int ny=100;
+    int nz=100;
+    float * dat = new float[nx*ny*nz];
+    for(int x=0,k=0;x<nx;x++)
+      for(int y=0;y<ny;y++)
+        for(int z=0;z<nz;z++,k++)
+          dat[k] = (sqrt(pow(x-nx/2,2)+pow(y-ny/2,2)+pow(z-nz/2,2))<nx/2)?1:0;
+    marching_cubes -> operator()(nx,ny,nz,dat);
+    std::cout << "marching cubes: end" << std::endl;
+  }
 
 	//{
 	//	std::cout << "press key to start" << std::endl;
