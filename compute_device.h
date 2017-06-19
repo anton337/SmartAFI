@@ -287,9 +287,25 @@ public:
     std::size_t nz
     , std::size_t ny
     , std::size_t nx
+    , float threshold
     , Token fh
     , Token th
     , Token thin
+    ) = 0;
+
+  // D_u f(x,y) = (a,b) . (dz/dx,dz/dy) = a dz/dx + b dz/dy
+  // D^2_u f(x,y) = a^2 (d^2z/dx2) + 2ab (d^2z/dydx) + b^2 (d^2z/dy^2)
+  //
+  // D_u F(kx,ky) = (a kx + b ky) F_(kx,ky)
+  // D^2_u F(kx,ky) = (a^2 kx^2 + 2 a b kx ky + b^2 ky^2) F_(kx,ky)
+
+  virtual void compute_first_directional_derivative(
+    std::size_t nz
+    , std::size_t ny
+    , std::size_t nx
+    , Token dat
+    , Token th
+    , Token deriv
     ) = 0;
 
 	virtual void update_maximum(
@@ -403,18 +419,6 @@ public:
 			);
 		//remove(fault_likelihood_token);
 	}
-
-  void compute_thin(
-    int nz
-    , int ny
-    , int nx
-    , Token optimal_fault_likelihood_token
-    , Token optimal_theta_token
-    , Token thin_token
-    )
-  {
-
-  }
 
 };
 

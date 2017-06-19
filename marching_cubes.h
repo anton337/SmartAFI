@@ -5,6 +5,21 @@
 
 #include "utility.h"
 
+struct point
+{
+  float x,y,z;
+  point(float _x,float _y,float _z)
+    : x(_x) , y(_y) , z(_z) {   }
+};
+
+struct polygon
+{
+  point p1,p2,p3;
+  polygon(point _p1,point _p2,point _p3)
+    : p1(_p1) , p2(_p2) , p3(_p3) {   }
+};
+
+
 class MarchingCubes
 {
 
@@ -14,21 +29,6 @@ class MarchingCubes
 
   std::vector<std::vector<std::vector<int> > > cycleTable;
 
-  char * type = NULL;
-
-  struct point
-  {
-    float x,y,z;
-    point(float _x,float _y,float _z)
-      : x(_x) , y(_y) , z(_z) {   }
-  };
-
-  struct polygon
-  {
-    point p1,p2,p3;
-    polygon(point _p1,point _p2,point _p3)
-      : p1(_p1) , p2(_p2) , p3(_p3) {   }
-  };
 
 public:
 
@@ -99,138 +99,40 @@ public:
 
   void operator()(std::size_t nx,std::size_t ny,std::size_t nz,float * dat)
   {
-    std::cout << "p1" << std::endl;
-    std::size_t size = nx*ny*nz;
-    type = new char[size];
+    polygons.clear();
 
-    for(int i=0;i<size;i++)
-    {
-      type[i] = 0;
-    }
-    std::cout << "p2" << std::endl;
-
-    for(int i=0;i<size;i++)
-    {
-      if(fabs(dat[i])>1e-5)
-      {
-        type[i] |= 1 << 0;
-      }
-    }
-    std::cout << "p3" << std::endl;
-
-    float * tmp = &dat[1];
-    for(int x=0,i=0;x<nx;x++)
-    for(int y=0;y<ny;y++)
-    for(int z=0;z<nz;z++,i++)
-    {
-      if(z+1<nz)
-      {
-        if(fabs(tmp[i])>1e-5)
-        {
-          type[i] |= 1 << 1;
-        }
-      }
-    }
-    std::cout << "p4" << std::endl;
-
-    tmp = &dat[nz];
-    for(int x=0,i=0;x<nx;x++)
-    for(int y=0;y<ny;y++)
-    for(int z=0;z<nz;z++,i++)
-    {
-      if(y+1<ny)
-      {
-        if(fabs(tmp[i])>1e-5)
-        {
-          type[i] |= 1 << 2;
-        }
-      }
-    }
-    std::cout << "p5" << std::endl;
-
-    tmp = &dat[nz+1];
-    for(int x=0,i=0;x<nx;x++)
-    for(int y=0;y<ny;y++)
-    for(int z=0;z<nz;z++,i++)
-    {
-      if(z+1<nz && y+1<ny)
-      {
-        if(fabs(tmp[i])>1e-5)
-        {
-          type[i] |= 1 << 3;
-        }
-      }
-    }
-    std::cout << "p6" << std::endl;
-
-    std::size_t x_offset = nz*ny;
-    tmp = &dat[x_offset];
-    for(int x=0,i=0;x<nx;x++)
-    for(int y=0;y<ny;y++)
-    for(int z=0;z<nz;z++,i++)
-    {
-      if(x+1<x)
-      {
-        if(fabs(tmp[i])>1e-5)
-        {
-          type[i] |= 1 << 4;
-        }
-      }
-    }
-    std::cout << "p7" << std::endl;
-
-    tmp = &dat[x_offset+1];
-    for(int x=0,i=0;x<nx;x++)
-    for(int y=0;y<ny;y++)
-    for(int z=0;z<nz;z++,i++)
-    {
-      if(x+1<nx && z+1<nz)
-      {
-        if(fabs(tmp[i])>1e-5)
-        {
-          type[i] |= 1 << 5;
-        }
-      }
-    }
-    std::cout << "p8" << std::endl;
-
-    tmp = &dat[x_offset+nz];
-    for(int x=0,i=0;x<nx;x++)
-    for(int y=0;y<ny;y++)
-    for(int z=0;z<nz;z++,i++)
-    {
-      if(x+1<nx && y+1<ny)
-      {
-        if(fabs(tmp[i])>1e-5)
-        {
-          type[i] |= 1 << 6;
-        }
-      }
-    }
-    std::cout << "p9" << std::endl;
-
-    tmp = &dat[x_offset+nz+1];
-    for(int x=0,i=0;x<nx;x++)
-    for(int y=0;y<ny;y++)
-    for(int z=0;z<nz;z++,i++)
-    {
-      if(x+1<nx && z+1<nz && y+1<ny)
-      {
-        if(fabs(tmp[i])>1e-5)
-        {
-          type[i] |= 1 << 7;
-        }
-      }
-    }
-    std::cout << "p10" << std::endl;
-
-    std::vector<polygon> polygons;
+    bool c[8];
 
     for(int x=0,i=0;x<nx;x++)
     for(int y=0;y<ny;y++)
     for(int z=0;z<nz;z++,i++)
     {
-      std::vector<std::vector<int> > const & cycle = cycleTable[(int)(unsigned char)type[i]];
+
+      int index = 0;
+      c[0] = false;
+      c[1] = false;
+      c[2] = false;
+      c[3] = false;
+      c[4] = false;
+      c[5] = false;
+      c[6] = false;
+      c[7] = false;
+
+      if(true                  )c[0] = fabs(dat[i           ])>1e-5;
+      if(z+1<nz                )c[1] = fabs(dat[i+1         ])>1e-5;
+      if(        y+1<ny        )c[2] = fabs(dat[i  +nz      ])>1e-5;
+      if(z+1<nz&&y+1<ny        )c[3] = fabs(dat[i+1+nz      ])>1e-5;
+      if(                x+1<nx)c[4] = fabs(dat[i     +nz*ny])>1e-5;
+      if(z+1<nz        &&x+1<nx)c[5] = fabs(dat[i+1   +nz*ny])>1e-5;
+      if(        y+1<ny&&x+1<nx)c[6] = fabs(dat[i  +nz+nz*ny])>1e-5;
+      if(z+1<nz&&y+1<ny&&x+1<nx)c[7] = fabs(dat[i+1+nz+nz*ny])>1e-5;
+
+      for(int i=1,j=0;i<256;i*=2,j++)
+        if(c[j])
+          index += i;
+
+      std::vector<std::vector<int> > const & cycle = cycleTable[index];
+
       for(int k=0;k<cycle.size();k++)
       {
         std::vector<point> points;
@@ -239,9 +141,25 @@ public:
           int edge_ind = cycle[k][j];
           int pt1_ind = edges[edge_ind][0];
           int pt2_ind = edges[edge_ind][1];
-          points.push_back( point ( x+0.5f*((int)((pt1_ind/4)%2>0) + (int)((pt2_ind/4)%2>0))
-                                  , y+0.5f*((int)((pt1_ind/2)%2>0) + (int)((pt2_ind/2)%2>0))
-                                  , z+0.5f*((int)((pt1_ind  )%2>0) + (int)((pt2_ind  )%2>0))
+          float wt1 = 0;
+          int x1 = x + (pt1_ind/4)%2;
+          int y1 = y + (pt1_ind/2)%2;
+          int z1 = z + (pt1_ind  )%2;
+          if(x1<nx&&y1<ny&&z1<nz)
+          {
+            wt1 = dat[z1+nz*(y1+ny*x1)];
+          }
+          float wt2 = 0;
+          int x2 = x + (pt2_ind/4)%2;
+          int y2 = y + (pt2_ind/2)%2;
+          int z2 = z + (pt2_ind  )%2;
+          if(x2<nx&&y2<ny&&z2<nz)
+          {
+            wt2 = dat[z2+nz*(y2+ny*x2)];
+          }
+          points.push_back( point ( x+(wt1*(int)((pt1_ind/4)%2>0) + wt2*(int)((pt2_ind/4)%2>0))
+                                  , y+(wt1*(int)((pt1_ind/2)%2>0) + wt2*(int)((pt2_ind/2)%2>0))
+                                  , z+(wt1*(int)((pt1_ind  )%2>0) + wt2*(int)((pt2_ind  )%2>0))
                                   )
                           );
         }
@@ -250,28 +168,33 @@ public:
           case 3:
             polygons.push_back(polygon(points[0],points[1],points[2]));
             break;
+          
           case 4:
             polygons.push_back(polygon(points[0],points[1],points[2]));
-            polygons.push_back(polygon(points[2],points[1],points[3]));
+            polygons.push_back(polygon(points[0],points[2],points[3]));
             break;
+          
           case 5:
             polygons.push_back(polygon(points[0],points[1],points[2]));
-            polygons.push_back(polygon(points[2],points[1],points[3]));
-            polygons.push_back(polygon(points[1],points[3],points[4]));
+            polygons.push_back(polygon(points[0],points[2],points[3]));
+            polygons.push_back(polygon(points[0],points[3],points[4]));
             break;
+
           case 6:
             polygons.push_back(polygon(points[0],points[1],points[2]));
-            polygons.push_back(polygon(points[2],points[1],points[3]));
-            polygons.push_back(polygon(points[2],points[3],points[4]));
-            polygons.push_back(polygon(points[4],points[3],points[5]));
+            polygons.push_back(polygon(points[0],points[2],points[3]));
+            polygons.push_back(polygon(points[0],points[3],points[4]));
+            polygons.push_back(polygon(points[0],points[4],points[5]));
             break;
+
           case 7:
             polygons.push_back(polygon(points[0],points[1],points[2]));
-            polygons.push_back(polygon(points[2],points[1],points[3]));
-            polygons.push_back(polygon(points[2],points[3],points[4]));
-            polygons.push_back(polygon(points[4],points[3],points[5]));
-            polygons.push_back(polygon(points[4],points[5],points[6]));
+            polygons.push_back(polygon(points[0],points[2],points[3]));
+            polygons.push_back(polygon(points[0],points[3],points[4]));
+            polygons.push_back(polygon(points[0],points[4],points[5]));
+            polygons.push_back(polygon(points[0],points[5],points[6]));
             break;
+          
           default:
             break;
         }
@@ -280,9 +203,17 @@ public:
 
     std::cout << "polygons:" << polygons.size() << std::endl;
 
-    delete [] type;
-    type = NULL;
   }
+
+public:
+  std::vector<polygon> const & get_polygons()
+  {
+    return polygons;
+  }
+
+private:
+  std::vector<polygon> polygons;
+
 };
 
 #endif

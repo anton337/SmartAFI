@@ -15,6 +15,8 @@
 
 #include "compute_device.h"
 
+#include "fault_sorter.h"
+
 class AFIfunctor
 {
 	DisplayUpdate * global_display_update;
@@ -53,8 +55,9 @@ public:
 			tile2 = new float[nx*ny*nz];
 		}
 
-	  float scalar_rotation = 16;
+	  float scalar_rotation = 64;
     float scalar_shear = 8;
+    float thin_threshold = 0.0f;
 
 	  Token input_token ("input", GPU, nx, ny, nz);            // note to self: could potentially delete this after getting transpose, if memory is an issue
 	  Token transpose_token("transpose", GPU, nz, ny, nx);    // can also get rid of this guy, once the semblance volumes have been calculated
@@ -88,8 +91,6 @@ public:
 	  	d->init_fft(nz, ny, nx);
 	  	d->initialize_semblance(nz,ny,nx,transpose_token,numerator_token,denominator_token,numerator_token_freq,denominator_token_freq);
 	  	d->create(optimal_fault_likelihood_token, nz, ny, nx);
-		  d->get_output(optimal_fault_likelihood_token, tile2);
-		  tile_display_update->update2("initial fault likelihood", nz, ny, nx, tile2);
 	  	d->create(optimal_theta_token, nz, ny, nx);
 	  	d->create(optimal_thin_token, nz, ny, nx);
 	  	d->create(output_fault_likelihood_token, nx, ny, nz);
@@ -171,26 +172,36 @@ public:
 
 	  		}
 
-		    //d->get_output(optimal_fault_likelihood_token, tile);
-        //tile_display_update->update1("update fault likelihood", nz, ny, nx, tile);
+		    d->get_output(optimal_fault_likelihood_token, tile);
+        tile_display_update->update1("update fault likelihood", nz, ny, nx, tile);
 
 	  	}
 
 
 	  	d->destroy_fft();
 
-      d->compute_thin(nz, ny, nx, optimal_fault_likelihood_token, optimal_theta_token, optimal_thin_token);
+      d->compute_thin(nz, ny, nx, thin_threshold, optimal_fault_likelihood_token, optimal_theta_token, optimal_thin_token);
 
 	  	d->compute_transpose(nz, ny, nx, optimal_fault_likelihood_token, output_fault_likelihood_token);
 
 	  	d->compute_transpose(nz, ny, nx, optimal_theta_token, output_theta_token);
 
-		  d->get_output(output_fault_likelihood_token, in);
+	  	d->compute_transpose(nz, ny, nx, optimal_thin_token, output_thin_token);
+
+		  d->get_output(optimal_thin_token, tile2);
+
+      FaultSorter faultSorter;
+      faultSorter(nz,ny,nx,tile2);
+
+		  tile_display_update->update2("optimal thin", nz, ny, nx, tile2);
+
+		  //d->get_output(output_fault_likelihood_token, in);
+		  d->get_output(output_thin_token, in);
 
 	  	d->destroy(input_token);
 	  	d->destroy(optimal_fault_likelihood_token);
 
-		//d->list_status();
+		  //d->list_status();
 
 	  }
 	

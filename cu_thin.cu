@@ -22,6 +22,7 @@ void Thin(
 int nz
 , int ny
 , int nx
+, float threshold
 , float * theta // theta (in)
 , float * like // like (in)
 , float * thin // thin (out)
@@ -37,59 +38,67 @@ int nz
 		{
 			ind = (kz*ny + ky)*nx + kx;
       float central = like[ind];
-      float orientation = theta[ind];
-      if(orientation<PI_8||orientation>7*PI_8)
+      if(central>threshold)
       {
-        // x oriented
-        // compare (x,y,z) to (x+1,y,z) and (x-1,y,z)
-        if(central>like[ind+1] && central>like[ind-1])
+        float orientation = theta[ind];
+        if(orientation<PI_8||orientation>7*PI_8)
         {
-          thin[ind] = like[ind];
+          // x oriented
+          // compare (x,y,z) to (x+1,y,z) and (x-1,y,z)
+          if(central>like[ind+1] && central>like[ind-1])
+          {
+            thin[ind] = like[ind];
+          }
+          else
+          {
+            thin[ind] = 0;
+          }
         }
-        else
+        else if(orientation<3*PI_8)
         {
-          thin[ind] = 0;
+          // xy diagonal
+          // compare (x,y,z) to (x+1,y+1,z) and (x-1,y-1,z)
+          if(central>like[ind+nx+1] && central>like[ind-nx-1])
+          {
+            thin[ind] = like[ind];
+          }
+          else
+          {
+            thin[ind] = 0;
+          }
+        }
+        else if(orientation<5*PI_8)
+        {
+          // y oriented
+          // compare (x,y,z) to (x,y+1,z) and (x,y-1,z)
+          if(central>like[ind+nx] && central>like[ind-nx])
+          {
+            thin[ind] = like[ind];
+          }
+          else
+          {
+            thin[ind] = 0;
+          }
+        }
+        else 
+        {
+          // -xy diagonal
+          // compare (x,y,z) to (x-1,y+1,z) and (x+1,y-1,z)
+          if(central>like[ind+nx-1] && central>like[ind-nx+1])
+          {
+            thin[ind] = like[ind];
+          }
+          else
+          {
+            thin[ind] = 0;
+          }
         }
       }
-      else if(orientation<3*PI_8)
+      else
       {
-        // xy diagonal
-        // compare (x,y,z) to (x+1,y+1,z) and (x-1,y-1,z)
-        if(central>like[ind+nx+1] && central>like[ind-nx-1])
-        {
-          thin[ind] = like[ind];
-        }
-        else
-        {
-          thin[ind] = 0;
-        }
-      }
-      else if(orientation<5*PI_8)
-      {
-        // y oriented
-        // compare (x,y,z) to (x,y+1,z) and (x,y-1,z)
-        if(central>like[ind+nx] && central>like[ind-nx])
-        {
-          thin[ind] = like[ind];
-        }
-        else
-        {
-          thin[ind] = 0;
-        }
-      }
-      else 
-      {
-        // -xy diagonal
-        // compare (x,y,z) to (x-1,y+1,z) and (x+1,y-1,z)
-        if(central>like[ind+nx-1] && central>like[ind-nx+1])
-        {
-          thin[ind] = like[ind];
-        }
-        else
-        {
-          thin[ind] = 0;
-        }
+        thin[ind] = 0;
       }
 		}
 	}
 }
+

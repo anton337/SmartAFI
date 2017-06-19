@@ -47,6 +47,8 @@
 
 #include "marching_cubes.h"
 
+#include "fault_sorter.h"
+
 GLfloat xRotated, yRotated, zRotated;
 
 float Distance = 5;
@@ -56,10 +58,81 @@ bool global_toggle = false;
 DisplayUpdate * d_global_update = new DisplayUpdate();
 DisplayUpdate * d_local_update = new DisplayUpdate();
 
+MarchingCubes * marching_cubes = new MarchingCubes();
+
 void init(void)
 {
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(0, 0, 0, 0);
+  glCullFace(GL_FRONT);
+  glEnable(GL_CULL_FACE);
+}
+
+inline float min(float a,float b)
+{
+  return (a>b)?b:a;
+}
+
+inline float max(float a,float b)
+{
+  return (a>b)?a:b;
+}
+
+void draw_iso_surface()
+{
+  glCullFace(GL_FRONT);
+  std::vector<polygon> const & vec = marching_cubes->get_polygons();
+  float x_min = 1000000, x_max = -1000000;
+  float y_min = 1000000, y_max = -1000000;
+  float z_min = 1000000, z_max = -1000000;
+  for(int i=0;i<vec.size();i++)
+  {
+    x_min = min(x_min,vec[i].p1.x);
+    x_min = min(x_min,vec[i].p2.x);
+    x_min = min(x_min,vec[i].p3.x);
+    x_max = max(x_max,vec[i].p1.x);
+    x_max = max(x_max,vec[i].p2.x);
+    x_max = max(x_max,vec[i].p3.x);
+
+    y_min = min(y_min,vec[i].p1.y);
+    y_min = min(y_min,vec[i].p2.y);
+    y_min = min(y_min,vec[i].p3.y);
+    y_max = max(y_max,vec[i].p1.y);
+    y_max = max(y_max,vec[i].p2.y);
+    y_max = max(y_max,vec[i].p3.y);
+
+    z_min = min(z_min,vec[i].p1.z);
+    z_min = min(z_min,vec[i].p2.z);
+    z_min = min(z_min,vec[i].p3.z);
+    z_max = max(z_max,vec[i].p1.z);
+    z_max = max(z_max,vec[i].p2.z);
+    z_max = max(z_max,vec[i].p3.z);
+
+  }
+  glBegin(GL_TRIANGLES);
+  float factor_x = 2.0f/(x_max-x_min);
+  float factor_y = 2.0f/(y_max-y_min);
+  float factor_z = 2.0f/(z_max-z_min);
+  for(int i=0;i<vec.size();i++)
+  {
+    glColor3f ( 1.0f
+              , 1.0f
+              , 1.0f
+              );
+    glVertex3f  ( -1.0f+factor_x*(vec[i].p1.x-x_min)
+                , -1.0f+factor_y*(vec[i].p1.y-y_min)
+                , -1.0f+factor_z*(vec[i].p1.z-z_min)
+                );
+    glVertex3f  ( -1.0f+factor_x*(vec[i].p2.x-x_min)
+                , -1.0f+factor_y*(vec[i].p2.y-y_min)
+                , -1.0f+factor_z*(vec[i].p2.z-z_min)
+                );
+    glVertex3f  ( -1.0f+factor_x*(vec[i].p3.x-x_min)
+                , -1.0f+factor_y*(vec[i].p3.y-y_min)
+                , -1.0f+factor_z*(vec[i].p3.z-z_min)
+                );
+  }
+  glEnd();
 }
 
 void drawstring(float x, float y, float z, const char *str)
@@ -75,12 +148,22 @@ void drawstring(float x, float y, float z, const char *str)
 
 void DrawLocal(void)
 {
+	glMatrixMode(GL_MODELVIEW);
+	// clear the drawing buffer.
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+	glTranslatef(0.0, 0.0, -Distance);
+	glRotatef(xRotated, 1.0, 0.0, 0.0);
+	// rotation about Y axis
+	glRotatef(yRotated, 0.0, 1.0, 0.0);
+	// rotation about Z axis
+	glRotatef(zRotated, 0.0, 0.0, 1.0);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  //draw_iso_surface();
+  
+  glCullFace(GL_BACK);
   if(global_toggle)
   {
-	  glMatrixMode(GL_MODELVIEW);
-	  // clear the drawing buffer.
-	  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	  glLoadIdentity();
 	  glColor3f(1, 1, 1);
 	  d_global_update->_mutex->lock();
 	  std::stringstream ss;
@@ -88,22 +171,10 @@ void DrawLocal(void)
 	  ss << ":" << d_global_update->layer_index << "/" << d_global_update->layers;
 	  drawstring(3, 3, -10, ss.str().c_str());
 	  d_global_update->_mutex->unlock();
-	  glTranslatef(0.0, 0.0, -Distance);
-	  glRotatef(xRotated, 1.0, 0.0, 0.0);
-	  // rotation about Y axis
-	  glRotatef(yRotated, 0.0, 1.0, 0.0);
-	  // rotation about Z axis
-	  glRotatef(zRotated, 0.0, 0.0, 1.0);
-	  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	  d_global_update->draw();
-	  glFlush();
   }
   else
   {
-	  glMatrixMode(GL_MODELVIEW);
-	  // clear the drawing buffer.
-	  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	  glLoadIdentity();
 	  glColor3f(1, 1, 1);
 	  d_local_update->_mutex->lock();
 	  std::stringstream ss;
@@ -111,16 +182,10 @@ void DrawLocal(void)
 	  ss << ":" << d_local_update->layer_index << "/" << d_local_update->layers;
 	  drawstring(3, 3, -10, ss.str().c_str());
 	  d_local_update->_mutex->unlock();
-	  glTranslatef(0.0, 0.0, -Distance);
-	  glRotatef(xRotated, 1.0, 0.0, 0.0);
-	  // rotation about Y axis
-	  glRotatef(yRotated, 0.0, 1.0, 0.0);
-	  // rotation about Z axis
-	  glRotatef(zRotated, 0.0, 0.0, 1.0);
-	  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	  d_local_update->draw();
-	  glFlush();
   }
+  
+	glFlush();
 }
 
 void animation(void)
@@ -164,6 +229,10 @@ void keyboard(unsigned char key, int x, int y)
           break;
 	case 'q':Distance /= 1.01f; break;
 	case 'a':Distance *= 1.01f; break;
+  case 'j':xRotated++;break;
+  case 'l':xRotated--;break;
+  case 'i':yRotated++;break;
+  case 'k':yRotated--;break;
 	}
 }
 
@@ -264,7 +333,6 @@ int main(int argc, char** argv)
 
   {
     std::cout << "marching cubes: start" << std::endl;
-    MarchingCubes * marching_cubes = new MarchingCubes();
     int nx=100;
     int ny=100;
     int nz=100;
@@ -272,9 +340,14 @@ int main(int argc, char** argv)
     for(int x=0,k=0;x<nx;x++)
       for(int y=0;y<ny;y++)
         for(int z=0;z<nz;z++,k++)
-          dat[k] = (sqrt(pow(x-nx/2,2)+pow(y-ny/2,2)+pow(z-nz/2,2))<nx/2)?1:0;
+          dat[k] = (fabs(sqrt(pow(x-nx/2,2)+pow(y-ny/2,2))-nx/4)<0.5f)?1:0;
+          //dat[k] = ((sqrt(pow(x-nx/2,2)+pow(y-ny/2,2))-nx/4)<0.0f)?1:0;
+          //dat[k] = ((sqrt(pow(x-nx/2,2)+pow(y-ny/2,2)+pow(z-nz/2,2))-nx/4)<0.0f)?1:0;
     marching_cubes -> operator()(nx,ny,nz,dat);
     std::cout << "marching cubes: end" << std::endl;
+    FaultSorter faultSorter;
+    std::cout << "num explored:" << faultSorter(nx,ny,nz,dat) << std::endl;
+    std::cout << "fault sorter: end" << std::endl;
   }
 
 	//{

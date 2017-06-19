@@ -424,6 +424,7 @@ public:
     std::size_t nz
     , std::size_t ny
     , std::size_t nx
+    , float threshold
     , Token fh
     , Token th
     , Token thin
@@ -436,12 +437,13 @@ public:
 		int NX = nx;
 		int NY = ny;
 		int NZ = nz;
+    float THRESHOLD = threshold;
 		int block_x = BLOCK_SIZE;
 		int block_y = BLOCK_SIZE;
 		int block_z = 1;
 		dim3 block = dim3(block_x, block_y, block_z);
 		dim3 grid = dim3((nx + block_x - 1) / block_x, (ny + block_y - 1) / block_y, 1);
-		void *args[6] = { &NX, &NY, &NZ, &a_th, &a_fh, &a_thin };
+		void *args[7] = { &NX, &NY, &NZ, &THRESHOLD, &a_th, &a_fh, &a_thin };
 		_checkCudaErrors(cuLaunchKernel(thin_fun,
 			grid.x, grid.y, grid.z,
 			block.x, block.y, block.z,

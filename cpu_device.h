@@ -184,6 +184,7 @@ public:
     std::size_t nz
     , std::size_t ny
     , std::size_t nx
+    , float threshold
     , Token fh
     , Token th
     , Token thin
