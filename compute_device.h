@@ -293,20 +293,96 @@ public:
     , Token thin
     ) = 0;
 
+  ////////////////////////////////////////////////////////////////////////
+  //
   // D_u f(x,y) = (a,b) . (dz/dx,dz/dy) = a dz/dx + b dz/dy
   // D^2_u f(x,y) = a^2 (d^2z/dx2) + 2ab (d^2z/dydx) + b^2 (d^2z/dy^2)
   //
   // D_u F(kx,ky) = (a kx + b ky) F_(kx,ky)
   // D^2_u F(kx,ky) = (a^2 kx^2 + 2 a b kx ky + b^2 ky^2) F_(kx,ky)
-
-  virtual void compute_first_directional_derivative(
+  //
+  ////////////////////////////////////////////////////////////////////////
+  void init_first_directional_derivative_kernel(
     std::size_t nz
     , std::size_t ny
     , std::size_t nx
+    , float theta
     , Token dat
     , Token th
     , Token deriv
-    ) = 0;
+    )
+  {
+		MESSAGE_ASSERT(
+			rotation_kernel_token_time.type == GPU
+			,  "argument type mismatch"
+			);
+		MESSAGE_ASSERT(
+			rotation_kernel_token_freq.type == FREQ_GPU
+			, "argument type mismatch"
+			);
+		cufftComplex * kernel_data = new cufftComplex[nx*ny];
+		float cos_theta = cos(theta);
+		float sin_theta = sin(theta);
+		for (int y = 0, k = 0; y < ny; y++)
+		{
+			for (int x = 0; x < nx; x++, k++)
+			{
+
+				kernel_data[(((y + 2 * ny - (int)ny / 2) % ny))*nx + ((x + 2 * nx - (int)nx / 2) % nx)].x = 0;
+				kernel_data[(((y + 2 * ny - (int)ny / 2) % ny))*nx + ((x + 2 * nx - (int)nx / 2) % nx)].y = ((float)x/nx)*cos_theta + ((float)y/ny)*sin_theta;
+			}
+		}
+		create(rotation_kernel_token_time, 1, ny, nx, kernel_data, false); // create time domain buffer for kernel, this can be removed after the frequency domain data is obtained
+		fft(1, ny, nx, rotation_kernel_token_time, rotation_kernel_token_freq);
+		remove(rotation_kernel_token_time);
+  }
+
+  ////////////////////////////////////////////////////////////////////////
+  //
+  // D_u f(x,y) = (a,b) . (dz/dx,dz/dy) = a dz/dx + b dz/dy
+  // D^2_u f(x,y) = a^2 (d^2z/dx2) + 2ab (d^2z/dydx) + b^2 (d^2z/dy^2)
+  //
+  // D_u F(kx,ky) = (a kx + b ky) F_(kx,ky)
+  // D^2_u F(kx,ky) = (a^2 kx^2 + 2 a b kx ky + b^2 ky^2) F_(kx,ky)
+  //
+  ////////////////////////////////////////////////////////////////////////
+  void init_second_directional_derivative_kernel(
+    std::size_t nz
+    , std::size_t ny
+    , std::size_t nx
+    , float theta
+    , Token dat
+    , Token th
+    , Token deriv
+    )
+  {
+		MESSAGE_ASSERT(
+			rotation_kernel_token_time.type == GPU
+			,  "argument type mismatch"
+			);
+		MESSAGE_ASSERT(
+			rotation_kernel_token_freq.type == FREQ_GPU
+			, "argument type mismatch"
+			);
+		cufftComplex * kernel_data = new cufftComplex[nx*ny];
+		float cos_theta = cos(theta);
+		float sin_theta = sin(theta);
+		float cos_theta_2 = cos_theta*cos_theta;
+		float sin_theta_2 = sin_theta*sin_theta;
+		float sin_cos_theta = sin_theta*cos_theta;
+		for (int y = 0, k = 0; y < ny; y++)
+		{
+			for (int x = 0; x < nx; x++, k++)
+			{
+
+				kernel_data[(((y + 2 * ny - (int)ny / 2) % ny))*nx + ((x + 2 * nx - (int)nx / 2) % nx)].x = ((float)x/nx)*((float)x/nx)*cos_theta_2 + 2*((float)x/nx)*((float)y/ny)*sin_cos_theta + ((float)y/ny)*((float)y/ny)*sin_theta_2;
+				kernel_data[(((y + 2 * ny - (int)ny / 2) % ny))*nx + ((x + 2 * nx - (int)nx / 2) % nx)].y = 0;
+			}
+		}
+		create(rotation_kernel_token_time, 1, ny, nx, kernel_data, false); // create time domain buffer for kernel, this can be removed after the frequency domain data is obtained
+		fft(1, ny, nx, rotation_kernel_token_time, rotation_kernel_token_freq);
+		remove(rotation_kernel_token_time);
+  }
 
 	virtual void update_maximum(
 		std::size_t nz
