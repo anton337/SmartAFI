@@ -25,7 +25,7 @@ class GPUDevice : public CPUDevice
 
 public:
 	GPUDevice(std::string _name,std::size_t _ind)
-		: CPUDevice(_name)
+		: CPUDevice(_name,_ind)
 	{
 		ind = _ind;
 		int major = 0, minor = 0;
@@ -66,6 +66,7 @@ public:
 		, bool keep_data = false
 		)
 	{
+		set_context();
 		if (freq)
 		{
 			MESSAGE_ASSERT(token.type == FREQ_GPU, "create data array : type mismatch");
@@ -99,6 +100,16 @@ private:
 	{
 		_checkCudaErrors(cuDeviceGet(&cuDevice, ind));
 		_checkCudaErrors(cuCtxCreate(&cuContext, 0, cuDevice));
+	}
+	void* get(Token token)
+	{
+		set_context();
+		return ComputeDevice::get(token);
+	}
+	void get_output(Token token,void *ptr)
+	{
+		set_context();
+		ComputeDevice::get_output(token,ptr);
 	}
 	void destroy_context()
 	{
@@ -548,6 +559,7 @@ public:
 		
 		float * a_transpose = (float*)get(transpose);
 		void *args[5] = { &NX, &NY, &NZ, &a_input, &a_transpose };
+		printf("%d %d %d\n",NX,NY,NZ);
 		_checkCudaErrors(cuLaunchKernel(transpose_constY,
 			grid.x, grid.y, grid.z,
 			block.x, block.y, block.z,

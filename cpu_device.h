@@ -8,8 +8,8 @@
 class CPUDevice : public ComputeDevice
 {
 public:
-	CPUDevice(std::string _token)
-		: ComputeDevice(_token)
+	CPUDevice(std::string _token,std::size_t _ind)
+		: ComputeDevice(_token,_ind)
 	{
 
 	}

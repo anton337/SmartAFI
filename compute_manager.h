@@ -49,7 +49,9 @@ private:
 	{
 		for (int i = 0; i < copies; i++)
 		{
-			device.push_back(new CPUDevice("CPU Device:"+i));
+			std::stringstream ss_name;
+			ss_name << "CPU Device:" << i ;
+			device.push_back(new CPUDevice(ss_name.str(),i));
 		}
 	}
 };

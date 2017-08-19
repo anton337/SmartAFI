@@ -30,6 +30,8 @@ public:
 		global_display_update = _global_display_update;
 		  tile_display_update =   _tile_display_update;
 		  tile = NULL;
+                  tile1 = NULL;
+                  tile2 = NULL;
 	}
   
 	void operator()(
@@ -56,8 +58,8 @@ public:
 		}
 
 	  float scalar_rotation = 64;
-    float scalar_shear = 8;
-    float thin_threshold = 0.0f;
+    	  float scalar_shear = 8;
+    	  float thin_threshold = 0.0f;
 
 	  Token input_token ("input", GPU, nx, ny, nz);            // note to self: could potentially delete this after getting transpose, if memory is an issue
 	  Token transpose_token("transpose", GPU, nz, ny, nx);    // can also get rid of this guy, once the semblance volumes have been calculated
@@ -85,8 +87,11 @@ public:
 	  	d->create(transpose_token, nz, ny, nx, NULL, false); // create transpose array (time domain) {Z,Y,X}
 	  	d->compute_transpose(nx, ny, nz, input_token, transpose_token);
 
-		  d->get_output(transpose_token, tile1);
-		  tile_display_update->update("input", nz, ny, nx, tile1);
+		//if(d->get_index()==0)d->get_output(transpose_token, tile1);
+		if(d->get_index()==0)d->get_output(transpose_token, tile1);
+		//usleep(1000);
+		//if(d->get_index()==0)tile_display_update->update("input", nz, ny, nx, tile1);
+		if(d->get_index()==0)tile_display_update->update("input", nz, ny, nx, tile1);
 
 	  	d->init_fft(nz, ny, nx);
 	  	d->initialize_semblance(nz,ny,nx,transpose_token,numerator_token,denominator_token,numerator_token_freq,denominator_token_freq);
@@ -172,8 +177,11 @@ public:
 
 	  		}
 
-		    d->get_output(optimal_fault_likelihood_token, tile);
-        tile_display_update->update1("update fault likelihood", nz, ny, nx, tile);
+		    //if(d->get_index()==0)d->get_output(fault_likelihood_token, tile1);
+	            //if(d->get_index()==0)tile_display_update->update1("fault likelihood", nz, ny, nx, tile1);
+
+		    if(d->get_index()==0)d->get_output(optimal_fault_likelihood_token, tile);
+	            if(d->get_index()==0)tile_display_update->update1("update fault likelihood", nz, ny, nx, tile);
 
 	  	}
 
@@ -188,20 +196,20 @@ public:
 
 	  	d->compute_transpose(nz, ny, nx, optimal_thin_token, output_thin_token);
 
-		  d->get_output(optimal_thin_token, tile2);
+		if(d->get_index()==0)d->get_output(optimal_thin_token, tile2);
 
-      FaultSorter faultSorter;
-      faultSorter(nz,ny,nx,tile2);
+      		//FaultSorter faultSorter;
+      		//faultSorter(nz,ny,nx,tile2);
 
-		  tile_display_update->update2("optimal thin", nz, ny, nx, tile2);
+		if(d->get_index()==0)tile_display_update->update2("optimal thin", nz, ny, nx, tile2);
 
-		  //d->get_output(output_fault_likelihood_token, in);
-		  d->get_output(output_thin_token, in);
+		//-->if(d->get_index()==0)d->get_output(output_fault_likelihood_token, in);
+		//if(d->get_index()==0)d->get_output(output_thin_token, in);
 
 	  	d->destroy(input_token);
 	  	d->destroy(optimal_fault_likelihood_token);
 
-		  //d->list_status();
+		//d->list_status();
 
 	  }
 	

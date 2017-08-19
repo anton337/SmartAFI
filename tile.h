@@ -198,29 +198,29 @@ void process_tile ( tile_params params
 					, params.size_read_z
 					, params.pad
 					, params.tile
-          , params.device
+				        , params.device
 					);
-				put_tile(
-					  params.num_x
-					, params.num_y
-					, params.num_z
-					, params.start_write_x
-					, params.start_write_y
-					, params.start_write_z
-					, params.size_write_x
-					, params.size_write_y
-					, params.size_write_z
-					, params.pad
-					, params.padded_output
-					, params.tile
-					);
-		    std::cout << "update output" << std::endl;
-		    d_global_update->update1  ( "output:"
-                                  , params.num_x , params.pad , params.nx
-                                  , params.num_y , params.pad , params.ny
-                                  , params.num_z , params.pad , params.nz
-                                  , params.padded_output
-                                  );
+				//put_tile(
+				//	  params.num_x
+				//	, params.num_y
+				//	, params.num_z
+				//	, params.start_write_x
+				//	, params.start_write_y
+				//	, params.start_write_z
+				//	, params.size_write_x
+				//	, params.size_write_y
+				//	, params.size_write_z
+				//	, params.pad
+				//	, params.padded_output
+				//	, params.tile
+				//	);
+		    		//std::cout << "update output" << std::endl;
+		    		//d_global_update->update1  ( "output:"
+                    		//              , params.num_x , params.pad , params.nx
+                    		//              , params.num_y , params.pad , params.ny
+                    		//              , params.num_z , params.pad , params.nz
+                    		//              , params.padded_output
+                    		//              );
         params.device_queue->put(params.device);
 }
 
@@ -256,7 +256,6 @@ void process(
 	std::size_t size_read_x = size_write_x + 2 * pad;
 	std::size_t size_read_y = size_write_y + 2 * pad;
 	std::size_t size_read_z = size_write_z + 2 * pad;
-	float * tile = new float[size_read_x*size_read_y*size_read_z];
 
 	ComputeManager * c_manager = new ComputeManager();
 
@@ -264,12 +263,20 @@ void process(
 	int num_gpu_copies = 1;
 	std::vector<ComputeDevice*> device = c_manager->create_compute_devices(num_cpu_copies,num_gpu_copies);
 
-  ProducerConsumerQueue<ComputeDevice> device_queue(BUFFER_SIZE);
+  	ProducerConsumerQueue<ComputeDevice> device_queue(BUFFER_SIZE);
 
-  for(int k=0;k<device.size();k++)
-  {
-    device_queue.put(device[k]);
-  }
+  	for(int k=0;k<device.size();k++)
+  	//for(int k=0;k<1;k++)
+  	{
+  	  device_queue.put(device[k]);
+  	  //device_queue.put(device[1]);
+  	}
+	
+	float ** tile = new float*[device.size()];
+	for(int k=0;k<device.size();k++)
+	{
+		tile[k] = new float[size_read_x*size_read_y*size_read_z];
+	}
 
 	for (int x = 0, X=0; x < num_tiles_x; x++,X+=size_write_x)
 	{
@@ -297,7 +304,7 @@ void process(
 							, pad
 							, padded_input
 							, padded_output
-							, tile
+							, tile[d->get_index()]
 							, d
 							, &device_queue
 							);

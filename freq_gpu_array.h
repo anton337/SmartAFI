@@ -21,12 +21,12 @@ public:
 	{
 		return (void*)data;
 	}
-  void get_output(void * ptr)
-  {
+  	void get_output(void * ptr)
+  	{
 		std::cout << "freq GPU get_output not implemented yet." << std::endl;
 		char ch; std::cin >> ch;
 		exit(0);
-  }
+  	}
 	void allocate(float * arr = NULL, bool keep_data = false)
 	{
 		//std::cout << "cudaMalloc:" << get_name() << std::endl;
@@ -43,7 +43,11 @@ public:
 			{
 				delete[] arr; // don't forget
 			}
-			gpuErrchk(cudaMemcpy(data, tmp, sizeof(cufftComplex)*get_size(), cudaMemcpyHostToDevice));
+			cudaStream_t stream;
+			cudaStreamCreate(&stream);
+			gpuErrchk(cudaMemcpyAsync(data, tmp, sizeof(cufftComplex)*get_size(), cudaMemcpyHostToDevice, stream));
+			cudaStreamSynchronize(stream);
+			cudaStreamDestroy(stream);
 			delete[] tmp;
 		}
 	}
@@ -71,7 +75,11 @@ public:
 			float val;
 			std::size_t size = get_size();
 			cufftComplex * tmp = new cufftComplex[size];
-			cudaMemcpy(tmp, data, sizeof(cufftComplex)*size, cudaMemcpyDeviceToHost);
+			cudaStream_t stream;
+			cudaStreamCreate(&stream);
+			cudaMemcpyAsync(tmp, data, sizeof(cufftComplex)*size, cudaMemcpyDeviceToHost,stream);
+			cudaStreamSynchronize(stream);
+			cudaStreamDestroy(stream);
 			for (std::size_t k = 0; k < size; k++)
 			{
 				val = sqrtf(tmp[k].x*tmp[k].x + tmp[k].y*tmp[k].y);
