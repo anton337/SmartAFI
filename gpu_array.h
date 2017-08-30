@@ -23,17 +23,11 @@ public:
 	}
   	void get_output(void * ptr)
   	{
-		std::cout << "get_output : begin" << std::endl;
 		cudaStream_t stream;
-		std::cout << "get_output : 1" << std::endl;
 		cudaStreamCreate(&stream);
-		std::cout << "get_output : 2" << std::endl;
-  	        gpuErrchk(cudaMemcpyAsync(ptr, data, sizeof(float)*get_size(), cudaMemcpyDeviceToHost, stream));
-		std::cout << "get_output : 3" << std::endl;
+  	gpuErrchk(cudaMemcpyAsync(ptr, data, sizeof(float)*get_size(), cudaMemcpyDeviceToHost, stream));
 		cudaStreamSynchronize(stream);
-		std::cout << "get_output : 4" << std::endl;
 		cudaStreamDestroy(stream);
-		std::cout << "get_output : end" << std::endl;
   	}
 	void allocate(float * arr = NULL, bool keep_data = false)
 	{

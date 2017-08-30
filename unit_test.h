@@ -19,12 +19,12 @@
 
 
 void run_some_tests	( DisplayUpdate * d_global_update
-					, DisplayUpdate * d_local_update
-					, std::size_t nx
-					, std::size_t ny
-					, std::size_t nz
-					, float * arr
-					)
+					          , DisplayUpdate * d_local_update
+					          , std::size_t nx
+					          , std::size_t ny
+					          , std::size_t nz
+					          , float * arr
+					          )
 {
 
 	{
@@ -32,8 +32,8 @@ void run_some_tests	( DisplayUpdate * d_global_update
 		//n2 = 1701 (number of traces in inline direction)
 		//n3 = 681 (number of traces in crossline direction)
 
-		std::size_t mpad = 32;
-		std::size_t scale = 2;
+		std::size_t mpad = 48;//32;
+		std::size_t scale = 8;
 
 		std::size_t tile_size_x = scale * 128 - 2 * scale * mpad;
 		std::size_t tile_size_y = scale * 128 - 2 * scale * mpad;
@@ -118,7 +118,7 @@ void run_some_tests	( DisplayUpdate * d_global_update
 
 		std::cout << "done" << std::endl;
 
-		delete[] orig_input;
+		//delete[] orig_input;
 		//delete[] output;
 	}
 

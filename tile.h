@@ -170,6 +170,8 @@ struct tile_params
   }
 };
 
+boost::mutex output_mutex;
+
 template<typename Functor>
 void process_tile ( tile_params params
 	                , DisplayUpdate * d_global_update
@@ -192,35 +194,38 @@ void process_tile ( tile_params params
 					);
 				// do some processing on the tile
         Functor functor(d_global_update,d_local_update);
-				functor(
-					  params.size_read_x
-					, params.size_read_y
-					, params.size_read_z
-					, params.pad
-					, params.tile
+				functor (
+					        params.size_read_x
+					      , params.size_read_y
+					      , params.size_read_z
+					      , params.pad
+					      , params.tile
 				        , params.device
-					);
-				//put_tile(
-				//	  params.num_x
-				//	, params.num_y
-				//	, params.num_z
-				//	, params.start_write_x
-				//	, params.start_write_y
-				//	, params.start_write_z
-				//	, params.size_write_x
-				//	, params.size_write_y
-				//	, params.size_write_z
-				//	, params.pad
-				//	, params.padded_output
-				//	, params.tile
-				//	);
-		    		//std::cout << "update output" << std::endl;
-		    		//d_global_update->update1  ( "output:"
-                    		//              , params.num_x , params.pad , params.nx
-                    		//              , params.num_y , params.pad , params.ny
-                    		//              , params.num_z , params.pad , params.nz
-                    		//              , params.padded_output
-                    		//              );
+					      );
+        {
+          boost::unique_lock<boost::mutex> lock(output_mutex);
+				  put_tile(
+				  	        params.num_x
+				  	      , params.num_y
+				  	      , params.num_z
+				  	      , params.start_write_x
+				  	      , params.start_write_y
+				  	      , params.start_write_z
+				  	      , params.size_write_x
+				  	      , params.size_write_y
+				  	      , params.size_write_z
+				  	      , params.pad
+				  	      , params.padded_output
+				  	      , params.tile
+				  	      );
+		      	      std::cout << "update output" << std::endl;
+		      	      d_global_update->update1  ( "output:"
+                        		                , params.num_x , params.pad , params.nx
+                        		                , params.num_y , params.pad , params.ny
+                        		                , params.num_z , params.pad , params.nz
+                        		                , params.padded_output
+                        		                );
+        }
         params.device_queue->put(params.device);
 }
 
@@ -266,10 +271,8 @@ void process(
   	ProducerConsumerQueue<ComputeDevice> device_queue(BUFFER_SIZE);
 
   	for(int k=0;k<device.size();k++)
-  	//for(int k=0;k<1;k++)
   	{
   	  device_queue.put(device[k]);
-  	  //device_queue.put(device[1]);
   	}
 	
 	float ** tile = new float*[device.size()];

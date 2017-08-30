@@ -140,7 +140,7 @@ public:
 			);
 		float * kernel_data = new float[nx*ny];
 		memset(kernel_data, 0, nx*ny);
-		float s = 2.0;
+		float s = 3;
 		float sigma_x_2 = 0.005f / (s*s);
 		float sigma_y_2 = 0.000002f*10.0f;
 		float a, b, c;

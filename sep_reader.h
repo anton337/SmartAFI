@@ -12,6 +12,17 @@
 class SEPReader
 {
 
+    char *replace(char *st, char *orig, char *repl) {
+      static char buffer[4096];
+      char *ch;
+      if (!(ch = strstr(st, orig)))
+        return st;
+      strncpy(buffer, st, ch-st);  
+      buffer[ch-st] = 0;
+      sprintf(buffer+(ch-st), "%s%s", repl, ch+strlen(orig));
+      return buffer;
+    }
+
     FILE * sep_DATA;
     FILE * sep_head;
 
@@ -129,8 +140,10 @@ public:
           {
             if (strncmp(junk, "in=\"",4)==0) { 
               junk2 = junk + 4; 
+              size_t len;
               strtok(junk2, "\"");
-              sscanf(junk2, "%s", in); 
+              sscanf(junk2, "%[^\t\n]", in);
+              in=replace(in,"%20"," ");
               std::cout << "Attempting to open data file: " << in << std::endl;
 			  //std::cout << "press key" << std::endl;
 			  //char ch;
@@ -143,7 +156,8 @@ public:
             else
             if (strncmp(junk, "in=",3)==0) { 
               junk2 = junk + 3; 
-              sscanf(junk2, "%s", in); 
+              sscanf(junk2, "%[^\t\n]", in); 
+              in=replace(in,"%20"," ");
               std::cout << "Attempting to open data file: " << in << std::endl;
 			  //std::cout << "press key" << std::endl;
 			  //char ch;

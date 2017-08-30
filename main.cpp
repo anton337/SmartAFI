@@ -359,8 +359,9 @@ int main(int argc, char** argv)
   	//SEPReader reader("/home/antonk/OpendTectData/Data/F3_Demo_2016_training_v6/SEP/fault_cube.sep");
 	//SEPReader reader("C:/Users/H181523/OpendTect/oxy/oxy.hdr");
   	//SEPReader reader("/home/antonk/OpendTectData/Data/oxy/oxy.hdr");
+  	SEPReader reader("/media/antonk/FreeAgent Drive/OpendTectData/Data/oxy/oxy.hdr");
 	//SEPReader reader("/export/home/r5000/OXY/oxy.hdr");
-  	SEPReader reader("/d01/home/H181523/OXY/oxy.hdr");
+  	//SEPReader reader("/d01/home/H181523/OXY/oxy.hdr");
 
 	int ox = reader.o3;
 	int oy = reader.o2;

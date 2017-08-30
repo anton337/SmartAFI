@@ -17,25 +17,25 @@
 
 #include "fault_sorter.h"
 
+float * tile0 = NULL;
+float * tile1 = NULL;
+float * tile2 = NULL;
+
 class AFIfunctor
 {
 	DisplayUpdate * global_display_update;
 	DisplayUpdate *   tile_display_update;
-	float * tile, *tile1, *tile2;
 public:
 	AFIfunctor	( DisplayUpdate * _global_display_update
 				, DisplayUpdate *   _tile_display_update
 				)
 	{
 		global_display_update = _global_display_update;
-		  tile_display_update =   _tile_display_update;
-		  tile = NULL;
-                  tile1 = NULL;
-                  tile2 = NULL;
+		tile_display_update =   _tile_display_update;
 	}
   
 	void operator()(
-		std::size_t nx
+		  std::size_t nx
 		, std::size_t ny
 		, std::size_t nz
 		, std::size_t pad
@@ -44,22 +44,26 @@ public:
 		)
 	{
 
-		if (tile == NULL)
+		if (tile0 == NULL)
 		{
-			tile = new float[nx*ny*nz];
+      std::cout << "creating tile0 array" << std::endl;
+			tile0 = new float[nx*ny*nz];
 		}
 		if (tile1 == NULL)
 		{
+      std::cout << "creating tile1 array" << std::endl;
 			tile1 = new float[nx*ny*nz];
 		}
 		if (tile2 == NULL)
 		{
+      std::cout << "creating tile2 array" << std::endl;
 			tile2 = new float[nx*ny*nz];
 		}
 
-	  float scalar_rotation = 64;
-    	  float scalar_shear = 8;
-    	  float thin_threshold = 0.0f;
+	  float scalar_rotation = 16;
+    float scalar_shear = 4;
+	 	float shear_extend = 0.1f;
+    float thin_threshold = 0.0f;
 
 	  Token input_token ("input", GPU, nx, ny, nz);            // note to self: could potentially delete this after getting transpose, if memory is an issue
 	  Token transpose_token("transpose", GPU, nz, ny, nx);    // can also get rid of this guy, once the semblance volumes have been calculated
@@ -150,9 +154,8 @@ public:
 				, Token(rotated_denominator_token_freq.name, FREQ_GPU, nz, ny, nx)
 				);
 
-	  		float shear_extend = 0.2f;
-	  		//for (float shear = -shear_extend; shear <= shear_extend; shear += shear_extend/scalar_shear)
-	  		float shear = 0.0f;
+	  		for (float shear = -shear_extend; shear <= shear_extend; shear += shear_extend/scalar_shear)
+	  		//float shear = 0.0f;
 	  		{
 
 	  			float shear_y = shear*cos(theta);
@@ -180,36 +183,54 @@ public:
 		    //if(d->get_index()==0)d->get_output(fault_likelihood_token, tile1);
 	            //if(d->get_index()==0)tile_display_update->update1("fault likelihood", nz, ny, nx, tile1);
 
-		    if(d->get_index()==0)d->get_output(optimal_fault_likelihood_token, tile);
-	            if(d->get_index()==0)tile_display_update->update1("update fault likelihood", nz, ny, nx, tile);
+		    if(d->get_index()==0)d->get_output(optimal_fault_likelihood_token, tile0);
+	            if(d->get_index()==0)tile_display_update->update1("update fault likelihood", nz, ny, nx, tile0);
+
+        d->compute_thin(nz, ny, nx, thin_threshold, optimal_fault_likelihood_token, optimal_theta_token, optimal_thin_token);
+
+	      d->compute_transpose(nz, ny, nx, optimal_fault_likelihood_token, output_fault_likelihood_token);
+
+	      //d->compute_transpose(nz, ny, nx, optimal_theta_token, output_theta_token);
+
+	      d->compute_transpose(nz, ny, nx, optimal_thin_token, output_thin_token);
+
+		    if(d->get_index()==0)d->get_output(optimal_thin_token, tile2);
+
+          		//FaultSorter faultSorter;
+          		//faultSorter(nz,ny,nx,tile2);
+
+		    if(d->get_index()==0)tile_display_update->update2("optimal thin", nz, ny, nx, tile2);
 
 	  	}
 
 
 	  	d->destroy_fft();
 
-      d->compute_thin(nz, ny, nx, thin_threshold, optimal_fault_likelihood_token, optimal_theta_token, optimal_thin_token);
+    //  d->compute_thin(nz, ny, nx, thin_threshold, optimal_fault_likelihood_token, optimal_theta_token, optimal_thin_token);
 
-	  	d->compute_transpose(nz, ny, nx, optimal_fault_likelihood_token, output_fault_likelihood_token);
+	  //	d->compute_transpose(nz, ny, nx, optimal_fault_likelihood_token, output_fault_likelihood_token);
 
-	  	d->compute_transpose(nz, ny, nx, optimal_theta_token, output_theta_token);
+	  //	d->compute_transpose(nz, ny, nx, optimal_theta_token, output_theta_token);
 
-	  	d->compute_transpose(nz, ny, nx, optimal_thin_token, output_thin_token);
+	  //	d->compute_transpose(nz, ny, nx, optimal_thin_token, output_thin_token);
 
-		if(d->get_index()==0)d->get_output(optimal_thin_token, tile2);
+		//if(d->get_index()==0)d->get_output(optimal_thin_token, tile2);
 
-      		//FaultSorter faultSorter;
-      		//faultSorter(nz,ny,nx,tile2);
+    //  		//FaultSorter faultSorter;
+    //  		//faultSorter(nz,ny,nx,tile2);
 
-		if(d->get_index()==0)tile_display_update->update2("optimal thin", nz, ny, nx, tile2);
+		//if(d->get_index()==0)tile_display_update->update2("optimal thin", nz, ny, nx, tile2);
 
-		//-->if(d->get_index()==0)d->get_output(output_fault_likelihood_token, in);
+		if(d->get_index()==0)d->get_output(output_fault_likelihood_token, in);
 		//if(d->get_index()==0)d->get_output(output_thin_token, in);
 
 	  	d->destroy(input_token);
 	  	d->destroy(optimal_fault_likelihood_token);
 
 		//d->list_status();
+
+    //char ch;
+    //std::cin >> ch;
 
 	  }
 	
