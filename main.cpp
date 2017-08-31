@@ -45,6 +45,8 @@
 
 #include "sep_reader.h"
 
+#include "sep_writer.h"
+
 #include "marching_cubes.h"
 
 #include "fault_sorter.h"

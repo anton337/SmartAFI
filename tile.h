@@ -170,7 +170,7 @@ struct tile_params
   }
 };
 
-boost::mutex output_mutex;
+boost::mutex * output_mutex = new boost::mutex();
 
 template<typename Functor>
 void process_tile ( tile_params params
@@ -203,7 +203,7 @@ void process_tile ( tile_params params
 				        , params.device
 					      );
         {
-          boost::unique_lock<boost::mutex> lock(output_mutex);
+          boost::unique_lock<boost::mutex> lock(*output_mutex);
 				  put_tile(
 				  	        params.num_x
 				  	      , params.num_y
@@ -268,11 +268,11 @@ void process(
 	int num_gpu_copies = 1;
 	std::vector<ComputeDevice*> device = c_manager->create_compute_devices(num_cpu_copies,num_gpu_copies);
 
-  	ProducerConsumerQueue<ComputeDevice> device_queue(BUFFER_SIZE);
+  	ProducerConsumerQueue<ComputeDevice> * device_queue = new ProducerConsumerQueue<ComputeDevice>(BUFFER_SIZE);
 
   	for(int k=0;k<device.size();k++)
   	{
-  	  device_queue.put(device[k]);
+  	  device_queue->put(device[k]);
   	}
 	
 	float ** tile = new float*[device.size()];
@@ -281,13 +281,15 @@ void process(
 		tile[k] = new float[size_read_x*size_read_y*size_read_z];
 	}
 
+  std::vector<boost::thread*> threads;
+
 	for (int x = 0, X=0; x < num_tiles_x; x++,X+=size_write_x)
 	{
 		for (int y = 0, Y=0; y < num_tiles_y; y++,Y += size_write_y)
 		{
 			for (int z = 0, Z=0; z < num_tiles_z; z++,Z += size_write_z)
 			{
-				ComputeDevice * d = device_queue.get();
+				ComputeDevice * d = device_queue->get();
 				tile_params params
 							( nx
 							, ny
@@ -309,12 +311,25 @@ void process(
 							, padded_output
 							, tile[d->get_index()]
 							, d
-							, &device_queue
+							, device_queue
 							);
-				boost::thread t(process_tile<Functor>,params,d_global_update,d_local_update);
+				boost::thread * t = new boost::thread(process_tile<Functor>,params,d_global_update,d_local_update);
+        threads.push_back(t);
 			}
 		}
+
+    for(int i=0;i<threads.size();i++)
+    {
+      threads[i]->join();
+      delete threads[i];
+    }
+
+    threads.clear();
+
+    std::cout << "threads joined" << std::endl;
+
 	}
+
 
 	c_manager->destroy();
 	delete c_manager;

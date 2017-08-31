@@ -17,6 +17,7 @@
 
 #include "semblance.h"
 
+#include "sep_writer.h"
 
 void run_some_tests	( DisplayUpdate * d_global_update
 					          , DisplayUpdate * d_local_update
@@ -32,8 +33,8 @@ void run_some_tests	( DisplayUpdate * d_global_update
 		//n2 = 1701 (number of traces in inline direction)
 		//n3 = 681 (number of traces in crossline direction)
 
-		std::size_t mpad = 48;//32;
-		std::size_t scale = 8;
+		long mpad = 32;
+		std::size_t scale = 4;
 
 		std::size_t tile_size_x = scale * 128 - 2 * scale * mpad;
 		std::size_t tile_size_y = scale * 128 - 2 * scale * mpad;
@@ -62,11 +63,11 @@ void run_some_tests	( DisplayUpdate * d_global_update
 
 		std::cout << "populating data" << std::endl;
 		int X, Y, Z;
-		for (std::size_t x = 0,k=0; x < padded_size_x; x++)
+		for (long x = 0,k=0; x < padded_size_x; x++)
 		{
-			for (std::size_t y = 0; y < padded_size_y; y++)
+			for (long y = 0; y < padded_size_y; y++)
 			{
-				for (std::size_t z = 0; z < padded_size_z; z++,k++)
+				for (long z = 0; z < padded_size_z; z++,k++)
 				{
 					X = x - mpad;
 					if (X < 0)X = 0;
@@ -82,7 +83,7 @@ void run_some_tests	( DisplayUpdate * d_global_update
 			}
 		}
 
-		delete[] arr;
+		//delete[] arr;
 
 	  float max_val = -10000000;
 	  float min_val = 10000000;
@@ -96,7 +97,7 @@ void run_some_tests	( DisplayUpdate * d_global_update
 	  {
 	  	orig_input[k] *= fact;
 	  }
-
+//#if 0
 		std::cout << "update input" << std::endl;
 		d_global_update->update ( "original input:"
                             , padded_size_x , mpad , nx
@@ -108,18 +109,55 @@ void run_some_tests	( DisplayUpdate * d_global_update
 		std::cout << "process" << std::endl;
 		process<AFIfunctor>(nx, ny, nz, padded_size_x, padded_size_y, padded_size_z, tile_size_x, tile_size_y, tile_size_z, mpad, orig_input, output, d_global_update, d_local_update);
 
-		std::cout << "update output" << std::endl;
-		d_global_update->update1 ( "output:"
-                             , padded_size_x , mpad , nx
-                             , padded_size_y , mpad , ny
-                             , padded_size_z , mpad , nz
-                             , output
-                             );
-
+		//std::cout << "update output" << std::endl;
+		//d_global_update->update1 ( "output:"
+    //                         , padded_size_x , mpad , nx
+    //                         , padded_size_y , mpad , ny
+    //                         , padded_size_z , mpad , nz
+    //                         , output
+    //                         );
+//#endif
 		std::cout << "done" << std::endl;
 
 		//delete[] orig_input;
 		//delete[] output;
+
+		for (long x = 0,k=0,t=0; x < padded_size_x; x++)
+		{
+			for (long y = 0; y < padded_size_y; y++)
+			{
+				for (long z = 0; z < padded_size_z; z++,k++)
+				{
+					X = x - mpad;
+					if (X < 0)continue;
+					if (X >= nx)continue;
+					Y = y - mpad;
+					if (Y < 0)continue;
+					if (Y >= ny)continue;
+					Z = z - mpad;
+					if (Z < 0)continue;
+					if (Z >= nz)continue;
+          //std::cout << "t=" << t << "\t" << nx*ny*nz << "\tk=" << k << "\t" << padded_size_x*padded_size_y*padded_size_z << std::endl;
+					arr[(X*ny+Y)*nz+Z] = output[k];
+          t++;
+				}
+			}
+		}
+
+    std::cout << "done copying data" << std::endl;
+
+    SEPWriter writer ( "/home/antonk/SmartAFI/git/SmartAFI/out"
+                     , 0, 1, nz
+                     , 0, 1, ny
+                     , 0, 1, nx
+                     , std::vector<std::string>()
+                     , std::vector<std::string>()
+                     );
+    writer.OpenDataFile("/home/antonk/SmartAFI/git/SmartAFI/out@");
+    writer.write_sepval(arr,0,0,0,nx*ny*nz);
+    writer.CloseDataFile();
+    std::cout << "output saved" << std::endl;
+    
 	}
 
 	
